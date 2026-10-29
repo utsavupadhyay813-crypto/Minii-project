@@ -8,46 +8,32 @@
 </head>
 <body>
   <main class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <h1>Voters Management</h1>
-      <div style="display:flex; gap:8px;">
-        <button type="button" class="btn sm ok" id="verifyAllBtn">⚡ Verify All Pending</button>
-        <a href="dashboard.html" class="btn sm ghost">&larr; Back to Dashboard</a>
-      </div>
-    </div>
+    <h1>Voters</h1>
 
     <div class="card">
-      <h3>Register &amp; Pre-Verify New Voter</h3>
+      <h3>Add voter</h3>
       <form id="addVoterForm">
         <div class="grid">
           <div>
-            <label for="name">Full Name</label>
-            <input type="text" id="name" required placeholder="e.g. Ananya Rao">
+            <label for="name">Name</label>
+            <input type="text" id="name" required>
           </div>
           <div>
-            <label for="email">Email Address</label>
-            <input type="email" id="email" required placeholder="e.g. ananya@vote.com">
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
           </div>
           <div>
-            <label for="password">Password (min 8 chars)</label>
-            <input type="password" id="password" minlength="8" required placeholder="Password@123">
+            <label for="password">Password</label>
+            <input type="password" id="password" minlength="8" required>
           </div>
         </div>
-        <p style="margin-top:16px;"><button type="submit" class="btn ok">+ Add &amp; Verify Voter</button></p>
+        <p><button type="submit" class="btn">Add &amp; verify</button></p>
       </form>
     </div>
 
     <div class="card">
-      <div class="noprint" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
-        <div style="flex:1; min-width:240px;">
-          <input type="text" id="searchInput" placeholder="🔎 Search by name, email or voter number...">
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button type="button" class="btn sm ghost filter-btn active-filter" data-filter="all">All</button>
-          <button type="button" class="btn sm ghost filter-btn" data-filter="pending">Pending</button>
-          <button type="button" class="btn sm ghost filter-btn" data-filter="verified">Verified</button>
-          <button type="button" class="btn sm ghost filter-btn" data-filter="rejected">Rejected</button>
-        </div>
+      <div class="noprint">
+        <input type="text" id="searchInput" placeholder="🔎 Search name, email or voter number">
       </div>
       <br>
       <div class="table-wrap">
@@ -55,10 +41,10 @@
           <thead>
             <tr>
               <th>Voter No.</th>
-              <th>Full Name</th>
+              <th>Name</th>
               <th>Email</th>
               <th>Status</th>
-              <th style="text-align:right;">Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="voters-table-body">
@@ -75,31 +61,6 @@
       if (!OVS.requireRole('admin', '../')) return;
       OVS.renderLayout({ title: 'Manage Voters', active: 'voters', relativePath: '../' });
 
-      const urlParams = new URLSearchParams(window.location.search);
-      let currentStatusFilter = urlParams.get('filter') || 'all';
-
-      // Update filter UI
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (btn.dataset.filter === currentStatusFilter) {
-          btn.classList.add('ok');
-          btn.classList.remove('ghost');
-        } else {
-          btn.classList.remove('ok');
-          btn.classList.add('ghost');
-        }
-
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.remove('ok');
-            b.classList.add('ghost');
-          });
-          btn.classList.add('ok');
-          btn.classList.remove('ghost');
-          currentStatusFilter = btn.dataset.filter;
-          renderVoters(document.getElementById('searchInput').value);
-        });
-      });
-
       function renderVoters(filter = '') {
         const voters = OVS.get(OVS.KEYS.VOTERS);
         const users = OVS.get(OVS.KEYS.USERS);
@@ -113,24 +74,18 @@
             email: user.email || 'Unknown'
           };
         }).filter(item => {
-          if (currentStatusFilter !== 'all' && item.status !== currentStatusFilter) return false;
           if (!q) return true;
           return item.name.toLowerCase().includes(q) ||
                  item.email.toLowerCase().includes(q) ||
                  item.voter_number.toLowerCase().includes(q);
         }).sort((a, b) => {
-          if (a.status !== b.status) {
-            // Put pending first
-            if (a.status === 'pending') return -1;
-            if (b.status === 'pending') return 1;
-            return a.status.localeCompare(b.status);
-          }
+          if (a.status !== b.status) return a.status.localeCompare(b.status);
           return a.name.localeCompare(b.name);
         });
 
         const tbody = document.getElementById('voters-table-body');
         if (combined.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5">No matching voters found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5">No voters found.</td></tr>';
           return;
         }
 
@@ -146,11 +101,11 @@
 
           return `
             <tr>
-              <td><code><b>${OVS.e(v.voter_number)}</b></code></td>
-              <td><b>${OVS.e(v.name)}</b></td>
+              <td>${OVS.e(v.voter_number)}</td>
+              <td>${OVS.e(v.name)}</td>
               <td>${OVS.e(v.email)}</td>
               <td>${OVS.badge(v.status)}</td>
-              <td style="text-align:right;">${buttons}</td>
+              <td>${buttons}</td>
             </tr>
           `;
         }).join('');
@@ -162,13 +117,13 @@
         if (v) {
           v.status = newStatus;
           OVS.set(OVS.KEYS.VOTERS, voters);
-          OVS.flash(`Voter status updated to "${newStatus}".`);
+          OVS.flash(`Voter ${newStatus}.`);
           renderVoters(document.getElementById('searchInput').value);
         }
       };
 
       window.deleteVoter = function(voterId, userId) {
-        if (!confirm('Are you sure you want to delete this voter and their user account?')) return;
+        if (!confirm('Delete voter?')) return;
         let voters = OVS.get(OVS.KEYS.VOTERS).filter(v => Number(v.voter_id) !== Number(voterId));
         let users = OVS.get(OVS.KEYS.USERS).filter(u => Number(u.user_id) !== Number(userId));
         let participation = OVS.get(OVS.KEYS.PARTICIPATION).filter(p => Number(p.voter_id) !== Number(voterId));
@@ -177,26 +132,8 @@
         OVS.set(OVS.KEYS.USERS, users);
         OVS.set(OVS.KEYS.PARTICIPATION, participation);
 
-        OVS.flash('Voter removed.');
+        OVS.flash('Voter deleted.');
         renderVoters(document.getElementById('searchInput').value);
-      };
-
-      document.getElementById('verifyAllBtn').onclick = () => {
-        let voters = OVS.get(OVS.KEYS.VOTERS);
-        let updatedCount = 0;
-        voters.forEach(v => {
-          if (v.status === 'pending') {
-            v.status = 'verified';
-            updatedCount++;
-          }
-        });
-        if (updatedCount > 0) {
-          OVS.set(OVS.KEYS.VOTERS, voters);
-          OVS.flash(`Successfully verified ${updatedCount} pending voters!`);
-          renderVoters(document.getElementById('searchInput').value);
-        } else {
-          alert('No pending voters found to verify.');
-        }
       };
 
       document.getElementById('searchInput').addEventListener('input', (e) => {
@@ -216,7 +153,7 @@
           if (lastVoter) lastVoter.status = 'verified';
           OVS.set(OVS.KEYS.VOTERS, voters);
 
-          OVS.flash(`Voter "${name}" registered and verified with number ${res.voterNumber}!`);
+          OVS.flash('Voter added and verified.');
           document.getElementById('addVoterForm').reset();
           renderVoters();
         } else {

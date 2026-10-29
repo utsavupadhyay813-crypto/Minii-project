@@ -193,7 +193,7 @@ const OVS = (() => {
   function requireRole(requiredRole, relativePathToRoot = '') {
     const s = getSession();
     if (!s || s.role !== requiredRole) {
-      flash('Please log in with appropriate permissions to access this page.', 'error');
+      flash('Please log in to continue.', 'error');
       window.location.href = relativePathToRoot + 'login.html';
       return false;
     }
@@ -241,72 +241,24 @@ const OVS = (() => {
     return { candidates, total, eligible, turnout, votedCount, maxVotes };
   }
 
-  // Layout rendering (Top Persona Bar + Navbar + Footer + Flash)
+  // Layout rendering (Navbar + Footer + Flash)
   function renderLayout(options = {}) {
     const { title = 'Online Voting System', active = '', relativePath = '' } = options;
     document.title = title;
 
-    const session = getSession();
+    // Remove any leftover persona-bar if present in DOM
+    const oldBar = document.querySelector('.persona-bar');
+    if (oldBar) oldBar.remove();
 
-    // 1. Top Quick Persona & Demo Bar (for easy testing workflow)
-    let personaBar = document.querySelector('.persona-bar');
-    if (!personaBar) {
-      personaBar = document.createElement('div');
-      personaBar.className = 'persona-bar noprint';
-      document.body.insertBefore(personaBar, document.body.firstChild);
-    }
-
-    const currentRoleLabel = session 
-      ? `Active: <b>${escapeHtml(session.name)}</b> (${session.role === 'admin' ? '🛡️ Admin' : '🗳️ Voter'})` 
-      : 'Active: <i>Guest (Not Logged In)</i>';
-
-    personaBar.innerHTML = `
-      <div>${currentRoleLabel}</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <span style="opacity:0.7">Quick Test:</span>
-        <button type="button" class="persona-btn" id="ovs-quick-admin">👑 Admin</button>
-        <button type="button" class="persona-btn" id="ovs-quick-voter">🗳️ Voter (Shivam)</button>
-        ${session ? '<button type="button" class="persona-btn" id="ovs-quick-logout" style="background:#e03131">🚪 Logout</button>' : ''}
-        <button type="button" class="persona-btn" id="ovs-reset-db" title="Restore default elections and demo voters">🔄 Reset Data</button>
-      </div>
-    `;
-
-    document.getElementById('ovs-quick-admin').onclick = () => {
-      login('admin@vote.com', 'Admin@123');
-      flash('Switched to Admin role.');
-      window.location.href = relativePath + 'admin/dashboard.html';
-    };
-
-    document.getElementById('ovs-quick-voter').onclick = () => {
-      login('utsavupadhyay813@gmail.com', 'Password@123');
-      flash('Switched to Voter role (Shivam).');
-      window.location.href = relativePath + 'voter/dashboard.html';
-    };
-
-    if (session) {
-      document.getElementById('ovs-quick-logout').onclick = () => {
-        clearSession();
-        flash('Logged out.');
-        window.location.href = relativePath + 'login.html';
-      };
-    }
-
-    document.getElementById('ovs-reset-db').onclick = () => {
-      if (confirm('Reset database to clean default state?')) {
-        initStorage(true);
-        flash('Demo database reset to clean default state.');
-        window.location.reload();
-      }
-    };
-
-    // 2. Navigation Bar
+    // 1. Navigation Bar
     let nav = document.querySelector('nav.nav');
     if (!nav) {
       nav = document.createElement('nav');
       nav.className = 'nav';
-      personaBar.after(nav);
+      document.body.insertBefore(nav, document.body.firstChild);
     }
 
+    const session = getSession();
     let linksHtml = '';
 
     if (session && session.role === 'admin') {
@@ -316,18 +268,17 @@ const OVS = (() => {
         <a href="${relativePath}admin/candidates.html" class="${active === 'candidates' ? 'active-link' : ''}">Candidates</a>
         <a href="${relativePath}admin/voters.html" class="${active === 'voters' ? 'active-link' : ''}">Voters</a>
         <a href="${relativePath}admin/results.html" class="${active === 'results' ? 'active-link' : ''}">Results</a>
-        <span class="who">👑 ${escapeHtml(session.name)}</span>
-        <a href="javascript:void(0)" id="ovs-logout-btn" class="btn sm bad" style="margin-left:6px;">Logout</a>
+        <span class="who">${escapeHtml(session.name)}</span>
+        <a href="javascript:void(0)" id="ovs-logout-btn">Logout</a>
       `;
     } else if (session && session.role === 'voter') {
       linksHtml = `
         <a href="${relativePath}voter/dashboard.html" class="${active === 'dashboard' ? 'active-link' : ''}">My Elections</a>
-        <span class="who">🗳️ ${escapeHtml(session.name)}</span>
-        <a href="javascript:void(0)" id="ovs-logout-btn" class="btn sm bad" style="margin-left:6px;">Logout</a>
+        <span class="who">${escapeHtml(session.name)}</span>
+        <a href="javascript:void(0)" id="ovs-logout-btn">Logout</a>
       `;
     } else {
       linksHtml = `
-        <a href="${relativePath}index.html" class="${active === 'home' ? 'active-link' : ''}">Home</a>
         <a href="${relativePath}login.html" class="${active === 'login' ? 'active-link' : ''}">Login</a>
         <a href="${relativePath}register.html" class="${active === 'register' ? 'active-link' : ''}">Register</a>
       `;
@@ -342,12 +293,12 @@ const OVS = (() => {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         clearSession();
-        flash('You have been logged out successfully.');
+        flash('You have been logged out.');
         window.location.href = relativePath + 'login.html';
       });
     }
 
-    // 3. Footer
+    // 2. Footer
     let foot = document.querySelector('footer.foot');
     if (!foot) {
       foot = document.createElement('footer');
@@ -356,7 +307,7 @@ const OVS = (() => {
       document.body.appendChild(foot);
     }
 
-    // 4. Flash Messages
+    // 3. Flash Messages
     renderFlash();
   }
 

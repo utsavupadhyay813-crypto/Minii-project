@@ -9,36 +9,21 @@
 <body>
   <main class="container">
     <div id="voteRecordedCard" class="card hero" style="display: none;">
-      <h1>✅ Vote Recorded Successfully</h1>
-      <p style="font-size: 1.1rem; margin: 16px 0;">
-        Thank you for casting your vote in <b id="recordedElectionTitle"></b>.
-      </p>
-      <div class="alert a-success" style="max-width:550px; margin: 0 auto 20px;">
-        🕵️ <b>Ballot Secrecy Maintained:</b> Your participation timestamp has been logged to prevent duplicate voting, while your candidate selection has been stored anonymously.
-      </div>
-      <a class="btn" href="dashboard.html">Back to My Elections</a>
+      <h1>✅ Vote recorded</h1>
+      <p>Thank you for voting in <b id="recordedElectionTitle"></b>. Your ballot is anonymous.</p>
+      <a class="btn" href="dashboard.html">Back to elections</a>
     </div>
 
     <div id="votingBooth">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-        <h1 id="electionTitleHeading" style="margin:0;">Cast Your Vote</h1>
-        <a href="dashboard.html" class="btn sm ghost">&larr; Back to Dashboard</a>
-      </div>
-
-      <div class="card" style="margin-bottom:16px; background:#f8f9fe;">
-        <p style="margin:0; font-size:0.95rem; color:var(--ink);">
-          🗳️ <b>Instructions:</b> Select one candidate from the list below and click <b>Submit Vote</b>. Votes cannot be modified once cast.
-        </p>
-      </div>
-
-      <input id="search" placeholder="🔎 Filter candidates by name or party..." style="margin-bottom: 16px;">
+      <h1 id="electionTitleHeading">Cast Your Vote</h1>
+      <input id="search" placeholder="🔎 Search candidate or party" style="margin-bottom: 14px;">
       
       <form id="voteForm">
         <div id="candidateList">
           <!-- Dynamically populated candidate choices -->
         </div>
-        <p style="margin-top: 24px; display:flex; gap:10px; align-items:center;">
-          <button type="submit" class="btn ok" style="font-size:1.05rem; padding:10px 20px;">Submit Vote &rarr;</button> 
+        <p>
+          <button type="submit" class="btn ok">Submit Vote</button> 
           <a class="btn ghost" href="dashboard.html">Cancel</a>
         </p>
       </form>
@@ -58,7 +43,7 @@
       const voter = OVS.getVoterByUserId(session.uid);
 
       if (!voter || voter.status !== 'verified') {
-        OVS.flash('Your account must be verified by admin before voting.', 'error');
+        OVS.flash('Voting is not available for this election.', 'error');
         window.location.href = 'dashboard.html';
         return;
       }
@@ -67,7 +52,7 @@
       const el = elections.find(e => Number(e.election_id) === eid);
 
       if (!el || OVS.electionState(el) !== 'live') {
-        OVS.flash('Voting is not currently active for this election.', 'error');
+        OVS.flash('Voting is not available for this election.', 'error');
         window.location.href = 'dashboard.html';
         return;
       }
@@ -87,7 +72,7 @@
       const candidateList = document.getElementById('candidateList');
 
       if (candidates.length === 0) {
-        candidateList.innerHTML = '<div class="alert a-error">No candidates configured for this election yet.</div>';
+        candidateList.innerHTML = '<p>No candidates available.</p>';
         return;
       }
 
@@ -95,22 +80,12 @@
         <label class="cand" data-text="${OVS.e((c.name + ' ' + c.party).toLowerCase())}">
           <input type="radio" name="candidate_id" value="${c.candidate_id}" required>
           <span class="sym">${OVS.e(c.symbol || '🗳️')}</span>
-          <span style="flex:1;">
-            <b style="font-size:1.1rem;">${OVS.e(c.name)}</b> 
-            <small style="margin-left:6px; color:var(--muted); font-size:0.9rem;">&middot; ${OVS.e(c.party)}</small><br>
-            <small style="display:block; margin-top:4px;">${OVS.e(c.manifesto || 'No manifesto provided.')}</small>
+          <span>
+            <b>${OVS.e(c.name)}</b> <small>&middot; ${OVS.e(c.party)}</small><br>
+            <small>${OVS.e(c.manifesto || '')}</small>
           </span>
         </label>
       `).join('');
-
-      // Add visual border highlight when a candidate is clicked
-      document.querySelectorAll('input[name="candidate_id"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-          document.querySelectorAll('.cand').forEach(card => card.style.borderColor = 'var(--line)');
-          const parent = radio.closest('.cand');
-          if (parent) parent.style.borderColor = 'var(--brand)';
-        });
-      });
 
       // Search filter handler
       document.getElementById('search').addEventListener('input', (e) => {
@@ -125,16 +100,16 @@
         e.preventDefault();
         const selected = document.querySelector('input[name="candidate_id"]:checked');
         if (!selected) {
-          alert('Please select a candidate before submitting.');
+          alert('Please select a valid candidate.');
           return;
         }
 
-        if (!confirm('Submit your ballot for this election? This action cannot be changed.')) return;
+        if (!confirm('Submit your vote? This cannot be changed.')) return;
 
         const candidateId = Number(selected.value);
         const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-        // 1) Record voter participation (One person, one vote - anonymous separation)
+        // 1) Record participation
         let partList = OVS.get(OVS.KEYS.PARTICIPATION);
         partList.push({
           election_id: eid,
@@ -143,7 +118,7 @@
         });
         OVS.set(OVS.KEYS.PARTICIPATION, partList);
 
-        // 2) Record anonymous vote (Ballot secrecy: candidate choice has NO voter ID)
+        // 2) Record anonymous vote
         let votesList = OVS.get(OVS.KEYS.VOTES);
         const newVoteId = votesList.length ? Math.max(...votesList.map(v => v.vote_id)) + 1 : 1;
         votesList.push({
@@ -154,7 +129,7 @@
         });
         OVS.set(OVS.KEYS.VOTES, votesList);
 
-        // Display confirmation view
+        // Confirmation view
         document.getElementById('votingBooth').style.display = 'none';
         document.getElementById('recordedElectionTitle').textContent = el.title;
         document.getElementById('voteRecordedCard').style.display = 'block';

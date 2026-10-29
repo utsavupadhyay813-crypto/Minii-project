@@ -8,22 +8,15 @@
 </head>
 <body>
   <main class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <h1>Results &amp; Analytics</h1>
-      <div style="display:flex; gap:8px;">
-        <a href="elections.html" class="btn sm ghost">&larr; Back to Elections</a>
-        <a id="manageCandBtn" href="candidates.html" class="btn sm ghost">Candidates &rarr;</a>
-      </div>
-    </div>
+    <h1>Results &amp; Analytics</h1>
 
     <div id="no-elections-alert" class="card" style="display: none;">
-      <p>No elections found yet.</p>
-      <a href="elections.html" class="btn ok">Create Election</a>
+      No elections yet.
     </div>
 
     <div id="results-content">
       <div class="card noprint">
-        <label for="electionSelect">Select Election</label>
+        <label for="electionSelect">Election</label>
         <select id="electionSelect"></select>
       </div>
 
@@ -37,15 +30,15 @@
         <div class="grid">
           <div class="card stat">
             <b id="stat-votes">0</b>
-            <span>Total votes cast</span>
+            <span>Votes cast</span>
           </div>
           <div class="card stat">
             <b id="stat-eligible">0</b>
-            <span>Eligible verified voters</span>
+            <span>Eligible voters</span>
           </div>
           <div class="card stat">
             <b id="stat-turnout">0%</b>
-            <span>Voter turnout</span>
+            <span>Turnout</span>
           </div>
         </div>
         <br>
@@ -54,11 +47,10 @@
           <!-- Dynamically populated candidate results -->
         </div>
 
-        <p class="noprint" style="margin-top: 24px; display:flex; gap:10px; align-items:center;">
-          <button class="btn ok" onclick="window.print()">🖨️ Print / Save Official PDF Report</button>
-          <a id="goToVotingBoothsBtn" href="#" class="btn ghost" style="display:none;" target="_blank">Test as Voter ↗</a>
+        <p class="noprint" style="margin-top: 20px;">
+          <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
         </p>
-        <p style="margin-top:10px;"><small id="generationTimestamp"></small></p>
+        <p><small id="generationTimestamp"></small></p>
       </div>
     </div>
   </main>
@@ -83,12 +75,10 @@
         selectedEid = Number(elections[0].election_id);
       }
 
-      document.getElementById('manageCandBtn').href = `candidates.html?election=${selectedEid}`;
-
       const select = document.getElementById('electionSelect');
       select.innerHTML = elections.map(x => `
         <option value="${x.election_id}" ${Number(x.election_id) === selectedEid ? 'selected' : ''}>
-          ${OVS.e(x.title)} (${OVS.e(OVS.electionState(x)).toUpperCase()})
+          ${OVS.e(x.title)}
         </option>
       `).join('');
 
@@ -110,25 +100,16 @@
 
       const resultsContainer = document.getElementById('candidates-results');
       if (t.candidates.length === 0) {
-        resultsContainer.innerHTML = '<p>No candidates registered for this election yet. <a href="candidates.html?election=' + selectedEid + '">Add candidates now</a>.</p>';
+        resultsContainer.innerHTML = '<p>No candidates yet.</p>';
       } else {
         resultsContainer.innerHTML = t.candidates.map(c => {
           const pct = t.total > 0 ? Number(((c.votes * 100) / t.total).toFixed(1)) : 0;
           const isWinner = t.maxVotes > 0 && c.votes === t.maxVotes && state !== 'live';
 
           return `
-            <div class="${isWinner ? 'winner' : ''}" style="padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--line);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <span style="font-size:1.6rem; vertical-align:middle; margin-right:6px;">${OVS.e(c.symbol || '🗳️')}</span>
-                  <b style="font-size:1.05rem;">${OVS.e(c.name)}</b> 
-                  <small style="color:var(--muted); margin-left:6px;">(${OVS.e(c.party)})</small>
-                  ${isWinner ? '<span class="badge b-live" style="margin-left:8px;">🏆 WINNER</span>' : ''}
-                </div>
-                <div>
-                  <b>${c.votes} votes</b> <span style="color:var(--muted)">(${pct}%)</span>
-                </div>
-              </div>
+            <div class="${isWinner ? 'winner' : ''}" style="padding-left: 8px; margin-bottom: 12px;">
+              <b>${OVS.e(c.symbol || '🗳️')} ${OVS.e(c.name)}</b> 
+              <small>(${OVS.e(c.party)})</small> &mdash; ${c.votes} votes (${pct}%)
               <div class="bar"><i style="width: ${pct}%"></i></div>
             </div>
           `;
@@ -136,7 +117,7 @@
       }
 
       const now = new Date();
-      document.getElementById('generationTimestamp').textContent = `Official Report generated on ${now.toLocaleString()}`;
+      document.getElementById('generationTimestamp').textContent = `Generated on ${now.toLocaleString()}`;
     });
   </script>
 </body>

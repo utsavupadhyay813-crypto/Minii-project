@@ -8,37 +8,34 @@
 </head>
 <body>
   <main class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <h1>Elections Management</h1>
-      <a href="dashboard.html" class="btn sm ghost">&larr; Back to Dashboard</a>
-    </div>
+    <h1>Elections</h1>
 
     <div class="card">
-      <h3>Create / Schedule New Election</h3>
+      <h3>Create / schedule election</h3>
       <form id="createElectionForm">
-        <label for="title">Election Title</label>
-        <input type="text" id="title" required placeholder="e.g. Student Council President 2026">
+        <label for="title">Title</label>
+        <input type="text" id="title" required>
 
         <label for="description">Description</label>
-        <textarea id="description" rows="2" placeholder="Brief info about this election..."></textarea>
+        <textarea id="description" rows="2"></textarea>
 
         <div class="grid">
           <div>
-            <label for="start_date">Start Date &amp; Time</label>
+            <label for="start_date">Start</label>
             <input type="datetime-local" id="start_date" required>
           </div>
           <div>
-            <label for="end_date">End Date &amp; Time</label>
+            <label for="end_date">End</label>
             <input type="datetime-local" id="end_date" required>
           </div>
         </div>
 
-        <p style="margin-top:16px;"><button type="submit" class="btn ok">+ Create as Draft</button></p>
+        <p><button type="submit" class="btn">Create</button></p>
       </form>
     </div>
 
     <div class="card">
-      <h3>All Elections</h3>
+      <h3>All elections</h3>
       <div class="table-wrap">
         <table>
           <thead>
@@ -46,8 +43,7 @@
               <th>Title</th>
               <th>Schedule</th>
               <th>State</th>
-              <th>Candidates &amp; Results</th>
-              <th>Status Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="elections-table-body">
@@ -55,7 +51,7 @@
           </tbody>
         </table>
       </div>
-      <p style="margin-top:14px;"><small>💡 <i>An election accepts votes only when status is <b>open</b> AND the current system time is between start and end. A minimum of 2 candidates is required before starting.</i></small></p>
+      <p><small>An election accepts votes only when status is <b>open</b> AND the current time is between start and end.</small></p>
     </div>
   </main>
 
@@ -65,14 +61,6 @@
       if (!OVS.requireRole('admin', '../')) return;
       OVS.renderLayout({ title: 'Manage Elections', active: 'elections', relativePath: '../' });
 
-      // Default start to today, end to 1 month from now
-      const now = new Date();
-      const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const toLocalISO = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-
-      document.getElementById('start_date').value = toLocalISO(now);
-      document.getElementById('end_date').value = toLocalISO(nextMonth);
-
       function renderElections() {
         const elections = OVS.get(OVS.KEYS.ELECTIONS);
         const candidates = OVS.get(OVS.KEYS.CANDIDATES);
@@ -80,43 +68,39 @@
         const tbody = document.getElementById('elections-table-body');
 
         if (sorted.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5">No elections created yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4">No elections yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = sorted.map(el => {
           const state = OVS.electionState(el);
-          const cCount = candidates.filter(c => Number(c.election_id) === Number(el.election_id)).length;
 
-          let statusButtons = '';
+          let actionButtons = '';
           if (el.status !== 'open') {
-            statusButtons += `<button class="btn sm ok" onclick="changeStatus(${el.election_id}, 'open')" title="Open election for voting">Start</button> `;
+            actionButtons += `<button class="btn sm ok" onclick="changeStatus(${el.election_id}, 'open')">Start</button> `;
           }
           if (el.status !== 'closed') {
-            statusButtons += `<button class="btn sm bad" onclick="changeStatus(${el.election_id}, 'closed')" title="Close and seal election">Stop</button> `;
+            actionButtons += `<button class="btn sm bad" onclick="changeStatus(${el.election_id}, 'closed')">Stop</button> `;
           }
           if (el.status === 'open') {
-            statusButtons += `<button class="btn sm ghost" onclick="changeStatus(${el.election_id}, 'draft')" title="Revert to draft">Draft</button> `;
+            actionButtons += `<button class="btn sm ghost" onclick="changeStatus(${el.election_id}, 'draft')">Draft</button> `;
           }
           if (el.status === 'draft') {
-            statusButtons += `<button class="btn sm bad" onclick="deleteElection(${el.election_id})" title="Delete draft">Delete</button>`;
+            actionButtons += `<button class="btn sm bad" onclick="deleteElection(${el.election_id})">Delete</button>`;
           }
 
           return `
             <tr>
               <td>
-                <b>${OVS.e(el.title)}</b><br>
+                <a href="candidates.html?election=${el.election_id}" title="Manage candidates" style="font-weight:600;">${OVS.e(el.title)}</a><br>
                 <small>${OVS.e(el.description || '')}</small>
               </td>
               <td>
-                <small>${OVS.e(el.start_date)}<br>to ${OVS.e(el.end_date)}</small>
+                ${OVS.e(el.start_date)}<br>
+                <small>to ${OVS.e(el.end_date)}</small>
               </td>
               <td>${OVS.badge(state)}</td>
-              <td>
-                <a class="btn sm ghost" href="candidates.html?election=${el.election_id}">👥 Candidates (${cCount})</a>
-                <a class="btn sm ghost" href="results.html?election=${el.election_id}">📊 Results</a>
-              </td>
-              <td>${statusButtons}</td>
+              <td>${actionButtons}</td>
             </tr>
           `;
         }).join('');
@@ -131,19 +115,19 @@
         if (newStatus === 'open') {
           const cCount = candidates.filter(c => Number(c.election_id) === Number(id)).length;
           if (cCount < 2) {
-            alert('Cannot start election: Add at least 2 candidates before opening voting.');
+            alert('Add at least 2 candidates before opening.');
             return;
           }
         }
 
         el.status = newStatus;
         OVS.set(OVS.KEYS.ELECTIONS, elections);
-        OVS.flash(`Election status updated to "${newStatus.toUpperCase()}".`);
+        OVS.flash('Election status updated.');
         window.location.reload();
       };
 
       window.deleteElection = function(id) {
-        if (!confirm('Are you sure you want to delete this election draft?')) return;
+        if (!confirm('Delete this election?')) return;
         let elections = OVS.get(OVS.KEYS.ELECTIONS);
         elections = elections.filter(x => Number(x.election_id) !== Number(id));
         OVS.set(OVS.KEYS.ELECTIONS, elections);
@@ -164,7 +148,7 @@
         const end = document.getElementById('end_date').value;
 
         if (!title || !start || !end) {
-          alert('Enter title and valid start/end times.');
+          alert('Enter a title and a valid start/end time.');
           return;
         }
 
@@ -189,7 +173,7 @@
         });
 
         OVS.set(OVS.KEYS.ELECTIONS, elections);
-        OVS.flash(`Election "${title}" created as Draft. Now add candidates!`);
+        OVS.flash('Election created as draft.');
         window.location.href = `candidates.html?election=${newId}`;
       });
 

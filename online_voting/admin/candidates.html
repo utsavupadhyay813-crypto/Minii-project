@@ -8,76 +8,60 @@
 </head>
 <body>
   <main class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <h1>Candidates Management</h1>
-      <div style="display:flex; gap:8px;">
-        <a href="elections.html" class="btn sm ghost">&larr; Back to Elections</a>
-        <a id="viewResultsBtn" href="results.html" class="btn sm ghost">View Results &rarr;</a>
-      </div>
-    </div>
+    <h1>Candidates</h1>
 
     <div id="no-elections-alert" class="card" style="display: none;">
-      <p>No elections found. Please create an election first before adding candidates.</p>
-      <a href="elections.html" class="btn ok">Create Election</a>
+      Create an election first.
     </div>
 
     <div id="content-area">
       <div class="card">
-        <label for="electionSelect">Select Election</label>
+        <label for="electionSelect">Election</label>
         <select id="electionSelect"></select>
       </div>
 
       <div id="candidateFormCard" class="card">
-        <h3 id="formTitle">Add Candidate</h3>
+        <h3 id="formTitle">Add candidate</h3>
         <form id="candidateForm">
           <input type="hidden" id="editCandidateId" value="">
           <div class="grid">
             <div>
-              <label for="candName">Candidate Full Name</label>
-              <input type="text" id="candName" required placeholder="e.g. Aarav Sharma">
+              <label for="candName">Name</label>
+              <input type="text" id="candName" required>
             </div>
             <div>
-              <label for="candParty">Party / Alliance</label>
-              <input type="text" id="candParty" required placeholder="e.g. Youth Progressive Alliance">
+              <label for="candParty">Party / group</label>
+              <input type="text" id="candParty" required>
             </div>
             <div>
-              <label for="candSymbol">Symbol (Emoji)</label>
-              <input type="text" id="candSymbol" maxlength="4" placeholder="🗳️" value="🗳️">
-              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='🦁'">🦁</button>
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='⚡'">⚡</button>
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='🌟'">🌟</button>
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='🦅'">🦅</button>
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='🗳️'">🗳️</button>
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='🚀'">🚀</button>
-                <button type="button" class="btn sm ghost" onclick="document.getElementById('candSymbol').value='🎯'">🎯</button>
-              </div>
+              <label for="candSymbol">Symbol (emoji)</label>
+              <input type="text" id="candSymbol" maxlength="4" value="🗳️">
             </div>
           </div>
-          <label for="candManifesto">Manifesto / Vision</label>
-          <textarea id="candManifesto" rows="3" placeholder="Key goals and pledges..."></textarea>
-          <p style="margin-top:16px;">
-            <button type="submit" id="submitBtn" class="btn ok">+ Add Candidate</button>
+          <label for="candManifesto">Manifesto</label>
+          <textarea id="candManifesto" rows="3"></textarea>
+          <p>
+            <button type="submit" id="submitBtn" class="btn">Add</button>
             <button type="button" id="cancelEditBtn" class="btn ghost" style="display: none;">Cancel</button>
           </p>
         </form>
       </div>
 
-      <div id="lockedAlert" class="alert a-info" style="display: none;">
-        🔒 <b>Candidates are locked:</b> This election is currently open or concluded. Candidates can only be added or modified while the election is in <b>draft</b> status to guarantee ballot integrity.
+      <div id="lockedAlert" class="alert a-error" style="display: none;">
+        This election is no longer a draft, so candidates are locked.
       </div>
 
       <div class="card">
-        <h3>Candidate Nominations List</h3>
+        <h3>Candidate list</h3>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th style="width: 60px;">Symbol</th>
-                <th>Candidate Name</th>
-                <th>Party / Group</th>
+                <th></th>
+                <th>Name</th>
+                <th>Party</th>
                 <th>Manifesto</th>
-                <th style="text-align: right;">Actions</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="candidates-table-body">
@@ -110,12 +94,10 @@
         selectedEid = Number(elections[0].election_id);
       }
 
-      document.getElementById('viewResultsBtn').href = `results.html?election=${selectedEid}`;
-
       const select = document.getElementById('electionSelect');
       select.innerHTML = elections.map(x => `
         <option value="${x.election_id}" ${Number(x.election_id) === selectedEid ? 'selected' : ''}>
-          ${OVS.e(x.title)} (${OVS.e(OVS.electionState(x)).toUpperCase()})
+          ${OVS.e(x.title)} (${OVS.e(OVS.electionState(x))})
         </option>
       `).join('');
 
@@ -144,13 +126,13 @@
       if (isEditable && editId) {
         const candidateToEdit = electionCandidates.find(c => Number(c.candidate_id) === editId);
         if (candidateToEdit) {
-          document.getElementById('formTitle').textContent = 'Edit Candidate';
+          document.getElementById('formTitle').textContent = 'Edit candidate';
           document.getElementById('editCandidateId').value = candidateToEdit.candidate_id;
           document.getElementById('candName').value = candidateToEdit.name;
           document.getElementById('candParty').value = candidateToEdit.party;
           document.getElementById('candSymbol').value = candidateToEdit.symbol || '🗳️';
           document.getElementById('candManifesto').value = candidateToEdit.manifesto || '';
-          document.getElementById('submitBtn').textContent = 'Save Changes';
+          document.getElementById('submitBtn').textContent = 'Update';
           const cancelBtn = document.getElementById('cancelEditBtn');
           cancelBtn.style.display = 'inline-block';
           cancelBtn.onclick = () => {
@@ -162,26 +144,26 @@
       // Render candidates table
       const tbody = document.getElementById('candidates-table-body');
       if (electionCandidates.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No candidates added yet for this election.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5">No candidates yet.</td></tr>';
       } else {
         tbody.innerHTML = electionCandidates.map(c => `
           <tr>
-            <td style="font-size: 1.8rem; text-align: center;">${OVS.e(c.symbol || '🗳️')}</td>
-            <td><b>${OVS.e(c.name)}</b></td>
+            <td style="font-size: 1.6rem;">${OVS.e(c.symbol || '🗳️')}</td>
+            <td>${OVS.e(c.name)}</td>
             <td>${OVS.e(c.party)}</td>
-            <td><small>${OVS.e(c.manifesto || 'No manifesto provided.')}</small></td>
-            <td style="text-align: right;">
+            <td>${OVS.e(c.manifesto || '')}</td>
+            <td>
               ${isEditable ? `
                 <a class="btn sm ghost" href="candidates.html?election=${selectedEid}&edit=${c.candidate_id}">Edit</a>
                 <button class="btn sm bad" onclick="deleteCandidate(${c.candidate_id})">Delete</button>
-              ` : '<span style="color:var(--muted); font-size:0.85rem;">Locked</span>'}
+              ` : ''}
             </td>
           </tr>
         `).join('');
       }
 
       window.deleteCandidate = function(cid) {
-        if (!confirm('Are you sure you want to remove this candidate?')) return;
+        if (!confirm('Delete candidate?')) return;
         let allCands = OVS.get(OVS.KEYS.CANDIDATES);
         allCands = allCands.filter(c => Number(c.candidate_id) !== Number(cid));
         OVS.set(OVS.KEYS.CANDIDATES, allCands);
@@ -211,7 +193,7 @@
             target.party = party;
             target.symbol = symbol;
             target.manifesto = manifesto;
-            OVS.flash('Candidate updated successfully.');
+            OVS.flash('Candidate updated.');
           }
         } else {
           const newId = allCands.length ? Math.max(...allCands.map(c => c.candidate_id)) + 1 : 1;
@@ -223,7 +205,7 @@
             symbol: symbol,
             manifesto: manifesto
           });
-          OVS.flash(`Candidate "${name}" added.`);
+          OVS.flash('Candidate added.');
         }
 
         OVS.set(OVS.KEYS.CANDIDATES, allCands);

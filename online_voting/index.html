@@ -10,45 +10,16 @@
   <main class="container">
     <div class="card hero">
       <h1>🗳️ Online Voting System</h1>
-      <p style="font-size:1.15rem; color:var(--muted); max-width:600px; margin: 10px auto 24px;">
-        A transparent, secure, and verifiable digital balloting platform with strict voter privacy and ballot secrecy.
+      <p>Secure, transparent and anonymous digital elections.</p>
+      <p id="action-buttons">
+        <a class="btn" href="login.html">Login</a> 
+        <a class="btn ghost" href="register.html">Register as Voter</a>
       </p>
-      <div id="action-buttons">
-        <!-- Dynamically rendered according to auth state -->
-      </div>
     </div>
-
     <div class="grid">
-      <div class="card">
-        <h3>🔐 Secure &amp; Verified</h3>
-        <p>Voter registration requires admin identity verification before voting privileges are granted, safeguarding against illegitimate ballots.</p>
-      </div>
-      <div class="card">
-        <h3>🕵️ 100% Anonymous Ballots</h3>
-        <p>Ballot secrecy is guaranteed by completely decoupling participation audit records (who voted) from ballot selections (what was chosen).</p>
-      </div>
-      <div class="card">
-        <h3>☝️ One Person, One Vote</h3>
-        <p>Strict uniqueness constraints prevent duplicate submissions per election, ensuring total election integrity.</p>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:20px;">
-      <h3>Quick Workflow Overview</h3>
-      <div class="grid" style="text-align:left;">
-        <div>
-          <b>1. Election Setup</b><br>
-          <small>Admins create elections, schedule start/end windows, and nominate 2+ candidates with custom symbols and manifestos.</small>
-        </div>
-        <div>
-          <b>2. Voter Verification</b><br>
-          <small>Voters register and receive a unique ID (e.g. <code>VTR260000X</code>). Admins review and verify eligibility.</small>
-        </div>
-        <div>
-          <b>3. Balloting &amp; Auditing</b><br>
-          <small>Verified voters cast secret ballots. Real-time turnout analytics, bar charts, and official printable PDF reports are generated.</small>
-        </div>
-      </div>
+      <div class="card"><h3>🔐 Secure</h3>Protected voter authentication, session validation, and prepared models.</div>
+      <div class="card"><h3>🕵️ Anonymous</h3>Ballots are stored separately from voter identity.</div>
+      <div class="card"><h3>☝️ One Person, One Vote</h3>Enforced by strict database-level constraints.</div>
     </div>
   </main>
 
@@ -62,19 +33,11 @@
 
       if (session && session.role === 'admin') {
         actionDiv.innerHTML = `
-          <p style="margin-bottom:14px; font-weight:600;">Logged in as: 👑 ${OVS.e(session.name)} (Administrator)</p>
-          <a class="btn" href="admin/dashboard.html" style="font-size:1.05rem; padding:10px 22px;">Go to Admin Dashboard &rarr;</a>
-          <a class="btn ghost" href="admin/elections.html">Manage Elections</a>
+          <a class="btn" href="admin/dashboard.html">Go to Admin Dashboard</a>
         `;
       } else if (session && session.role === 'voter') {
         actionDiv.innerHTML = `
-          <p style="margin-bottom:14px; font-weight:600;">Logged in as: 🗳️ ${OVS.e(session.name)} (Voter)</p>
-          <a class="btn" href="voter/dashboard.html" style="font-size:1.05rem; padding:10px 22px;">Go to Voter Portal &rarr;</a>
-        `;
-      } else {
-        actionDiv.innerHTML = `
-          <a class="btn" href="login.html" style="font-size:1.05rem; padding:10px 22px;">Login to Portal</a> 
-          <a class="btn ghost" href="register.html" style="font-size:1.05rem; padding:10px 22px;">Register as Voter</a>
+          <a class="btn" href="voter/dashboard.html">Go to My Elections</a>
         `;
       }
     });

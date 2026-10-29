@@ -3,40 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Election Results - Online Voting System</title>
+  <title>Results - Online Voting System</title>
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <main class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <h1 id="electionResultsTitle" style="margin:0;">Results</h1>
-      <a class="btn sm ghost" href="dashboard.html">&larr; Back to My Elections</a>
-    </div>
+    <h1 id="electionResultsTitle">Results</h1>
 
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <p style="margin:0; font-size:1.05rem;">
-          Total Votes Cast: <b id="stat-total-votes" style="color:var(--brand)">0</b> &middot; 
-          Voter Turnout: <b id="stat-turnout-pct" style="color:var(--ok)">0%</b>
-        </p>
-        <span class="badge b-closed">FINAL RESULTS</span>
-      </div>
+      <p>
+        Total votes: <b id="stat-total-votes">0</b> &middot; 
+        Turnout: <b id="stat-turnout-pct">0%</b>
+      </p>
 
       <div id="candidates-results-list">
         <!-- Dynamically populated candidate results -->
       </div>
     </div>
 
-    <p>
-      <a class="btn ghost" href="dashboard.html">&larr; Return to Dashboard</a>
-    </p>
+    <a class="btn ghost" href="dashboard.html">Back</a>
   </main>
 
   <script src="../assets/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (!OVS.requireRole('voter', '../')) return;
-      OVS.renderLayout({ title: 'Election Results', relativePath: '../' });
+      OVS.renderLayout({ title: 'Results', relativePath: '../' });
 
       const urlParams = new URLSearchParams(window.location.search);
       const eid = Number(urlParams.get('id'));
@@ -45,12 +37,12 @@
       const el = elections.find(e => Number(e.election_id) === eid);
 
       if (!el || !OVS.resultsVisible(el)) {
-        OVS.flash('Results are not available for this election yet.', 'error');
+        OVS.flash('Results are not available yet.', 'error');
         window.location.href = 'dashboard.html';
         return;
       }
 
-      document.getElementById('electionResultsTitle').textContent = `${el.title} — Official Results`;
+      document.getElementById('electionResultsTitle').textContent = `${el.title} — Results`;
 
       const t = OVS.tally(eid);
       document.getElementById('stat-total-votes').textContent = t.total;
@@ -58,7 +50,7 @@
 
       const listContainer = document.getElementById('candidates-results-list');
       if (t.candidates.length === 0) {
-        listContainer.innerHTML = '<p>No candidates were found for this election.</p>';
+        listContainer.innerHTML = '<p>No candidates found.</p>';
         return;
       }
 
@@ -67,18 +59,9 @@
         const isWinner = t.maxVotes > 0 && c.votes === t.maxVotes;
 
         return `
-          <div class="${isWinner ? 'winner' : ''}" style="padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--line);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <span style="font-size:1.6rem; vertical-align:middle; margin-right:6px;">${OVS.e(c.symbol || '🗳️')}</span>
-                <b style="font-size:1.05rem;">${OVS.e(c.name)}</b> 
-                <small style="color:var(--muted); margin-left:6px;">(${OVS.e(c.party)})</small>
-                ${isWinner ? '<span class="badge b-live" style="margin-left:8px;">🏆 WINNER</span>' : ''}
-              </div>
-              <div>
-                <b>${c.votes} votes</b> <span style="color:var(--muted)">(${pct}%)</span>
-              </div>
-            </div>
+          <div class="${isWinner ? 'winner' : ''}" style="padding-left: 8px; margin-bottom: 12px;">
+            <b>${OVS.e(c.symbol || '🗳️')} ${OVS.e(c.name)}</b> 
+            <small>(${OVS.e(c.party)})</small> &mdash; ${c.votes} votes (${pct}%)
             <div class="bar"><i style="width: ${pct}%"></i></div>
           </div>
         `;

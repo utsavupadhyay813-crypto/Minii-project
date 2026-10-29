@@ -12,25 +12,22 @@
       <h2>Voter Registration</h2>
       <form id="registerForm">
         <label for="name">Full name</label>
-        <input type="text" id="name" name="name" required autocomplete="name" placeholder="e.g. John Doe">
+        <input type="text" id="name" name="name" required autocomplete="name">
 
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" required autocomplete="email" placeholder="e.g. john@example.com">
+        <input type="email" id="email" name="email" required autocomplete="email">
 
         <label for="password">Password (min 8 chars)</label>
-        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
 
         <label for="confirm">Confirm password</label>
-        <input type="password" id="confirm" name="confirm" required minlength="8" autocomplete="new-password" placeholder="Re-enter password">
+        <input type="password" id="confirm" name="confirm" required minlength="8" autocomplete="new-password">
 
         <p style="margin-top: 18px; display: flex; align-items: center; justify-content: space-between;">
           <button type="submit" class="btn">Register</button>
           <a href="login.html">Already registered? Login</a>
         </p>
       </form>
-      <p style="font-size:0.85rem; color:var(--muted); margin-top:14px; border-top:1px solid var(--line); padding-top:10px;">
-        💡 <i>Note: Once registered, your voter account will be pending until verified by an Administrator, maintaining election eligibility integrity.</i>
-      </p>
     </div>
   </main>
 
