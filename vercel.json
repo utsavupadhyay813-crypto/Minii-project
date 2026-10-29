@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/", "destination": "/online_voting/index.html" },
+    { "source": "/assets/(.*)", "destination": "/online_voting/assets/$1" },
+    { "source": "/admin/(.*)", "destination": "/online_voting/admin/$1" },
+    { "source": "/voter/(.*)", "destination": "/online_voting/voter/$1" },
+    { "source": "/login.html", "destination": "/online_voting/login.html" },
+    { "source": "/register.html", "destination": "/online_voting/register.html" },
+    { "source": "/index.html", "destination": "/online_voting/index.html" },
+    { "source": "/online_voting", "destination": "/online_voting/index.html" },
+    { "source": "/online_voting/", "destination": "/online_voting/index.html" }
+  ]
+}
