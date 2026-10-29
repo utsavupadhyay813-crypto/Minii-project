@@ -12,20 +12,30 @@
       <h2>Login</h2>
       <form id="loginForm">
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" required autocomplete="email">
+        <input type="email" id="email" name="email" required autocomplete="email" placeholder="e.g. admin@vote.com">
 
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" required autocomplete="current-password">
+        <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
 
-        <p>
+        <p style="margin-top: 18px; display: flex; align-items: center; justify-content: space-between;">
           <button type="submit" class="btn">Login</button> 
           <a href="register.html">New voter? Register</a>
         </p>
       </form>
-      <div style="margin-top: 15px; font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px;">
-        <strong>Demo Accounts:</strong><br>
-        Admin: <code>admin@vote.com</code> / <code>Admin@123</code><br>
-        Voter: <code>utsavupadhyay813@gmail.com</code> / <code>Password@123</code>
+
+      <div style="margin-top: 20px; font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 14px;">
+        <span style="font-weight: 600; color: var(--muted); display: block; margin-bottom: 8px;">⚡ 1-Click Fast Fill for Demo:</span>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button type="button" class="btn sm ghost" id="fillAdminBtn" style="text-align: left;">
+            👑 <b>Admin:</b> admin@vote.com (Admin@123)
+          </button>
+          <button type="button" class="btn sm ghost" id="fillVoter1Btn" style="text-align: left;">
+            🗳️ <b>Verified Voter (Shivam):</b> utsavupadhyay813@gmail.com
+          </button>
+          <button type="button" class="btn sm ghost" id="fillVoter2Btn" style="text-align: left;">
+            🗳️ <b>Verified Voter (Yash):</b> yash@vote.com
+          </button>
+        </div>
       </div>
     </div>
   </main>
@@ -33,26 +43,37 @@
   <script src="assets/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      OVS.renderLayout({ title: 'Login', relativePath: '' });
+      OVS.renderLayout({ title: 'Login', active: 'login', relativePath: '' });
 
-      const session = OVS.getSession();
-      if (session) {
-        window.location.href = session.role === 'admin' ? 'admin/dashboard.html' : 'voter/dashboard.html';
-        return;
-      }
+      const emailInput = document.getElementById('email');
+      const passInput = document.getElementById('password');
+
+      document.getElementById('fillAdminBtn').onclick = () => {
+        emailInput.value = 'admin@vote.com';
+        passInput.value = 'Admin@123';
+      };
+
+      document.getElementById('fillVoter1Btn').onclick = () => {
+        emailInput.value = 'utsavupadhyay813@gmail.com';
+        passInput.value = 'Password@123';
+      };
+
+      document.getElementById('fillVoter2Btn').onclick = () => {
+        emailInput.value = 'yash@vote.com';
+        passInput.value = 'Password@123';
+      };
 
       const form = document.getElementById('loginForm');
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        const email = emailInput.value;
+        const password = passInput.value;
 
         const res = OVS.login(email, password);
         if (res.success) {
           OVS.flash(`Welcome back, ${res.user.name}!`);
           window.location.href = res.user.role === 'admin' ? 'admin/dashboard.html' : 'voter/dashboard.html';
         } else {
-          // Display error flash alert dynamically
           const oldAlert = document.querySelector('.alert');
           if (oldAlert) oldAlert.remove();
 

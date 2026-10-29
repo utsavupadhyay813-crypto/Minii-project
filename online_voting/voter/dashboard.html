@@ -8,25 +8,34 @@
 </head>
 <body>
   <main class="container">
-    <h1 id="welcomeHeader">Welcome, Voter</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <h1 id="welcomeHeader" style="margin:0;">Welcome, Voter</h1>
+      <span style="font-size:0.9rem; color:var(--muted);">Voter Portal</span>
+    </div>
 
     <div class="card" id="voterInfoCard">
-      Voter No: <b id="voterNumberDisplay">-</b> &nbsp; Status: <span id="voterStatusBadge"></span>
-      <div id="unverifiedNotice" style="display: none; margin-top: 10px; color: var(--warn);">
-        Your account must be verified by the admin before you can vote.
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          Voter Identification Number: <code style="font-size:1.1rem; font-weight:700;"><b id="voterNumberDisplay">-</b></code> &nbsp; 
+          Account Eligibility: <span id="voterStatusBadge"></span>
+        </div>
+      </div>
+      <div id="unverifiedNotice" style="display: none; margin-top: 12px; padding:10px; background:#fff9db; border-radius:6px; border:1px solid #ffe066;">
+        ⚠️ <b>Pending Verification:</b> Your registration is awaiting administrator verification before ballots can be cast.<br>
+        <button type="button" class="btn sm ok" id="quickVerifySelfBtn" style="margin-top:8px;">⚡ Instant Demo Verify This Account</button>
       </div>
     </div>
 
     <div class="card">
-      <h3>Elections</h3>
+      <h3>Active &amp; Completed Elections</h3>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Schedule</th>
+              <th>Election Title</th>
+              <th>Voting Window</th>
               <th>State</th>
-              <th>Action</th>
+              <th style="text-align:right;">Participation &amp; Action</th>
             </tr>
           </thead>
           <tbody id="voter-elections-tbody">
@@ -41,7 +50,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (!OVS.requireRole('voter', '../')) return;
-      OVS.renderLayout({ title: 'My Elections', relativePath: '../' });
+      OVS.renderLayout({ title: 'My Elections', active: 'dashboard', relativePath: '../' });
 
       const session = OVS.getSession();
       document.getElementById('welcomeHeader').textContent = `Welcome, ${session.name}`;
@@ -51,7 +60,19 @@
         document.getElementById('voterNumberDisplay').textContent = voter.voter_number;
         document.getElementById('voterStatusBadge').innerHTML = OVS.badge(voter.status);
         if (voter.status !== 'verified') {
-          document.getElementById('unverifiedNotice').style.display = 'block';
+          const notice = document.getElementById('unverifiedNotice');
+          notice.style.display = 'block';
+
+          document.getElementById('quickVerifySelfBtn').onclick = () => {
+            let voters = OVS.get(OVS.KEYS.VOTERS);
+            const me = voters.find(v => Number(v.voter_id) === Number(voter.voter_id));
+            if (me) {
+              me.status = 'verified';
+              OVS.set(OVS.KEYS.VOTERS, voters);
+              OVS.flash('Your voter account has been verified! You may now cast your vote.');
+              window.location.reload();
+            }
+          };
         }
       }
 
@@ -63,25 +84,36 @@
 
       const tbody = document.getElementById('voter-elections-tbody');
       if (elections.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4">No elections available.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4">No elections available at this time.</td></tr>';
         return;
       }
 
       tbody.innerHTML = elections.map(el => {
         const state = OVS.electionState(el);
         const hasVoted = votedElections.includes(Number(el.election_id));
-        const canVote = state === 'live' && voter && voter.status === 'verified' && !hasVoted;
+        const isVerified = voter && voter.status === 'verified';
+        const canVote = state === 'live' && isVerified && !hasVoted;
         const canSeeResults = OVS.resultsVisible(el);
 
         let actionHtml = '';
         if (hasVoted) {
-          actionHtml += '<span style="color: var(--ok); font-weight: 600;">✅ Voted</span> ';
+          actionHtml += '<span style="color: var(--ok); font-weight: 600; margin-right:8px;">✅ Ballot Cast</span>';
         }
         if (canVote) {
-          actionHtml += `<a class="btn sm ok" href="vote.html?id=${el.election_id}">Vote now</a> `;
+          actionHtml += `<a class="btn sm ok" href="vote.html?id=${el.election_id}">Vote Now 🗳️</a> `;
         }
         if (canSeeResults) {
-          actionHtml += `<a class="btn sm ghost" href="results.html?id=${el.election_id}">Results</a>`;
+          actionHtml += `<a class="btn sm ghost" href="results.html?id=${el.election_id}">Results 📊</a>`;
+        }
+
+        if (!hasVoted && !canVote && !canSeeResults) {
+          if (state === 'scheduled') {
+            actionHtml = '<small style="color:var(--muted);">Voting not started yet</small>';
+          } else if (!isVerified) {
+            actionHtml = '<small style="color:var(--warn);">Verification required</small>';
+          } else {
+            actionHtml = '<small style="color:var(--muted);">&mdash;</small>';
+          }
         }
 
         return `
@@ -91,11 +123,10 @@
               <small>${OVS.e(el.description || '')}</small>
             </td>
             <td>
-              ${OVS.e(el.start_date)}<br>
-              <small>to ${OVS.e(el.end_date)}</small>
+              <small>${OVS.e(el.start_date)}<br>to ${OVS.e(el.end_date)}</small>
             </td>
             <td>${OVS.badge(state)}</td>
-            <td>${actionHtml || '<span style="color: var(--muted);">&mdash;</span>'}</td>
+            <td style="text-align:right;">${actionHtml}</td>
           </tr>
         `;
       }).join('');

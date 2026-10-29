@@ -1,6 +1,6 @@
 /**
  * Online Voting System
- * Modern JavaScript Application Engine & LocalStorage Datastore
+ * Modern JavaScript Engine & Client Datastore
  */
 
 const OVS = (() => {
@@ -15,9 +15,9 @@ const OVS = (() => {
     FLASH: 'ovs_flash'
   };
 
-  // Seed default data matching the original schema and records
-  function initStorage() {
-    if (!localStorage.getItem(KEYS.USERS)) {
+  // Seed default dataset matching original records
+  function initStorage(force = false) {
+    if (force || !localStorage.getItem(KEYS.USERS)) {
       const initialUsers = [
         { user_id: 1, name: 'Administrator', email: 'admin@vote.com', password: 'Admin@123', role: 'admin', created_at: '2026-10-06 05:00:00' },
         { user_id: 2, name: 'SHIVAM', email: 'utsavupadhyay813@gmail.com', password: 'Password@123', role: 'voter', created_at: '2026-10-06 06:00:00' },
@@ -27,7 +27,7 @@ const OVS = (() => {
       localStorage.setItem(KEYS.USERS, JSON.stringify(initialUsers));
     }
 
-    if (!localStorage.getItem(KEYS.VOTERS)) {
+    if (force || !localStorage.getItem(KEYS.VOTERS)) {
       const initialVoters = [
         { voter_id: 1, user_id: 2, voter_number: 'VTR2600002', status: 'verified' },
         { voter_id: 2, user_id: 3, voter_number: 'VTR2600003', status: 'verified' },
@@ -36,7 +36,7 @@ const OVS = (() => {
       localStorage.setItem(KEYS.VOTERS, JSON.stringify(initialVoters));
     }
 
-    if (!localStorage.getItem(KEYS.ELECTIONS)) {
+    if (force || !localStorage.getItem(KEYS.ELECTIONS)) {
       const initialElections = [
         {
           election_id: 1,
@@ -60,7 +60,7 @@ const OVS = (() => {
       localStorage.setItem(KEYS.ELECTIONS, JSON.stringify(initialElections));
     }
 
-    if (!localStorage.getItem(KEYS.CANDIDATES)) {
+    if (force || !localStorage.getItem(KEYS.CANDIDATES)) {
       const initialCandidates = [
         {
           candidate_id: 1,
@@ -68,7 +68,7 @@ const OVS = (() => {
           name: 'Aarav Sharma',
           party: 'Youth Progressive Alliance',
           symbol: '🦁',
-          manifesto: 'Dedicated to campus innovation, transparent club funding, and sports development.'
+          manifesto: 'Campus digitalization, transparent club funding, and sports development.'
         },
         {
           candidate_id: 2,
@@ -76,7 +76,7 @@ const OVS = (() => {
           name: 'Rohan Patil',
           party: 'United Student Front',
           symbol: '⚡',
-          manifesto: 'Empowering students with 24/7 library, technical research labs, and career mentorship.'
+          manifesto: '24/7 library access, advanced technical research labs, and career mentorship.'
         },
         {
           candidate_id: 3,
@@ -84,7 +84,7 @@ const OVS = (() => {
           name: 'Priya Deshmukh',
           party: 'Independent Voices',
           symbol: '🌟',
-          manifesto: 'Promoting student welfare, mental health awareness, and cultural activities.'
+          manifesto: 'Student welfare, mental health awareness, and cultural activities.'
         },
         {
           candidate_id: 4,
@@ -92,7 +92,7 @@ const OVS = (() => {
           name: 'Neha Gupta',
           party: 'Visionary League',
           symbol: '🦅',
-          manifesto: 'Leadership with integrity and academic excellence.'
+          manifesto: 'Academic excellence and community service initiatives.'
         },
         {
           candidate_id: 5,
@@ -106,14 +106,14 @@ const OVS = (() => {
       localStorage.setItem(KEYS.CANDIDATES, JSON.stringify(initialCandidates));
     }
 
-    if (!localStorage.getItem(KEYS.PARTICIPATION)) {
+    if (force || !localStorage.getItem(KEYS.PARTICIPATION)) {
       const initialParticipation = [
         { election_id: 2, voter_id: 1, voted_at: '2026-10-08 15:30:00' }
       ];
       localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(initialParticipation));
     }
 
-    if (!localStorage.getItem(KEYS.VOTES)) {
+    if (force || !localStorage.getItem(KEYS.VOTES)) {
       const initialVotes = [
         { vote_id: 1, election_id: 2, candidate_id: 4, cast_at: '2026-10-08 15:30:00' }
       ];
@@ -193,6 +193,7 @@ const OVS = (() => {
   function requireRole(requiredRole, relativePathToRoot = '') {
     const s = getSession();
     if (!s || s.role !== requiredRole) {
+      flash('Please log in with appropriate permissions to access this page.', 'error');
       window.location.href = relativePathToRoot + 'login.html';
       return false;
     }
@@ -240,42 +241,95 @@ const OVS = (() => {
     return { candidates, total, eligible, turnout, votedCount, maxVotes };
   }
 
-  // Navigation rendering
+  // Layout rendering (Top Persona Bar + Navbar + Footer + Flash)
   function renderLayout(options = {}) {
     const { title = 'Online Voting System', active = '', relativePath = '' } = options;
     document.title = title;
 
-    // Render Navigation
+    const session = getSession();
+
+    // 1. Top Quick Persona & Demo Bar (for easy testing workflow)
+    let personaBar = document.querySelector('.persona-bar');
+    if (!personaBar) {
+      personaBar = document.createElement('div');
+      personaBar.className = 'persona-bar noprint';
+      document.body.insertBefore(personaBar, document.body.firstChild);
+    }
+
+    const currentRoleLabel = session 
+      ? `Active: <b>${escapeHtml(session.name)}</b> (${session.role === 'admin' ? '🛡️ Admin' : '🗳️ Voter'})` 
+      : 'Active: <i>Guest (Not Logged In)</i>';
+
+    personaBar.innerHTML = `
+      <div>${currentRoleLabel}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="opacity:0.7">Quick Test:</span>
+        <button type="button" class="persona-btn" id="ovs-quick-admin">👑 Admin</button>
+        <button type="button" class="persona-btn" id="ovs-quick-voter">🗳️ Voter (Shivam)</button>
+        ${session ? '<button type="button" class="persona-btn" id="ovs-quick-logout" style="background:#e03131">🚪 Logout</button>' : ''}
+        <button type="button" class="persona-btn" id="ovs-reset-db" title="Restore default elections and demo voters">🔄 Reset Data</button>
+      </div>
+    `;
+
+    document.getElementById('ovs-quick-admin').onclick = () => {
+      login('admin@vote.com', 'Admin@123');
+      flash('Switched to Admin role.');
+      window.location.href = relativePath + 'admin/dashboard.html';
+    };
+
+    document.getElementById('ovs-quick-voter').onclick = () => {
+      login('utsavupadhyay813@gmail.com', 'Password@123');
+      flash('Switched to Voter role (Shivam).');
+      window.location.href = relativePath + 'voter/dashboard.html';
+    };
+
+    if (session) {
+      document.getElementById('ovs-quick-logout').onclick = () => {
+        clearSession();
+        flash('Logged out.');
+        window.location.href = relativePath + 'login.html';
+      };
+    }
+
+    document.getElementById('ovs-reset-db').onclick = () => {
+      if (confirm('Reset database to clean default state?')) {
+        initStorage(true);
+        flash('Demo database reset to clean default state.');
+        window.location.reload();
+      }
+    };
+
+    // 2. Navigation Bar
     let nav = document.querySelector('nav.nav');
     if (!nav) {
       nav = document.createElement('nav');
       nav.className = 'nav';
-      document.body.insertBefore(nav, document.body.firstChild);
+      personaBar.after(nav);
     }
 
-    const session = getSession();
     let linksHtml = '';
 
     if (session && session.role === 'admin') {
       linksHtml = `
-        <a href="${relativePath}admin/dashboard.html">Dashboard</a>
-        <a href="${relativePath}admin/elections.html">Elections</a>
-        <a href="${relativePath}admin/candidates.html">Candidates</a>
-        <a href="${relativePath}admin/voters.html">Voters</a>
-        <a href="${relativePath}admin/results.html">Results</a>
-        <span class="who">${escapeHtml(session.name)}</span>
-        <a href="javascript:void(0)" id="ovs-logout-btn">Logout</a>
+        <a href="${relativePath}admin/dashboard.html" class="${active === 'dashboard' ? 'active-link' : ''}">Dashboard</a>
+        <a href="${relativePath}admin/elections.html" class="${active === 'elections' ? 'active-link' : ''}">Elections</a>
+        <a href="${relativePath}admin/candidates.html" class="${active === 'candidates' ? 'active-link' : ''}">Candidates</a>
+        <a href="${relativePath}admin/voters.html" class="${active === 'voters' ? 'active-link' : ''}">Voters</a>
+        <a href="${relativePath}admin/results.html" class="${active === 'results' ? 'active-link' : ''}">Results</a>
+        <span class="who">👑 ${escapeHtml(session.name)}</span>
+        <a href="javascript:void(0)" id="ovs-logout-btn" class="btn sm bad" style="margin-left:6px;">Logout</a>
       `;
     } else if (session && session.role === 'voter') {
       linksHtml = `
-        <a href="${relativePath}voter/dashboard.html">My Elections</a>
-        <span class="who">${escapeHtml(session.name)}</span>
-        <a href="javascript:void(0)" id="ovs-logout-btn">Logout</a>
+        <a href="${relativePath}voter/dashboard.html" class="${active === 'dashboard' ? 'active-link' : ''}">My Elections</a>
+        <span class="who">🗳️ ${escapeHtml(session.name)}</span>
+        <a href="javascript:void(0)" id="ovs-logout-btn" class="btn sm bad" style="margin-left:6px;">Logout</a>
       `;
     } else {
       linksHtml = `
-        <a href="${relativePath}login.html">Login</a>
-        <a href="${relativePath}register.html">Register</a>
+        <a href="${relativePath}index.html" class="${active === 'home' ? 'active-link' : ''}">Home</a>
+        <a href="${relativePath}login.html" class="${active === 'login' ? 'active-link' : ''}">Login</a>
+        <a href="${relativePath}register.html" class="${active === 'register' ? 'active-link' : ''}">Register</a>
       `;
     }
 
@@ -293,7 +347,7 @@ const OVS = (() => {
       });
     }
 
-    // Render Footer
+    // 3. Footer
     let foot = document.querySelector('footer.foot');
     if (!foot) {
       foot = document.createElement('footer');
@@ -302,7 +356,7 @@ const OVS = (() => {
       document.body.appendChild(foot);
     }
 
-    // Render Flash
+    // 4. Flash Messages
     renderFlash();
   }
 
@@ -380,7 +434,6 @@ const OVS = (() => {
     return voters.find(v => Number(v.user_id) === Number(userId)) || null;
   }
 
-  // Public API
   return {
     KEYS,
     get,
@@ -400,6 +453,7 @@ const OVS = (() => {
     renderLayout,
     login,
     register,
-    getVoterByUserId
+    getVoterByUserId,
+    initStorage
   };
 })();

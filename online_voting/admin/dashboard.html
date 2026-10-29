@@ -8,38 +8,47 @@
 </head>
 <body>
   <main class="container">
-    <h1>Admin Dashboard</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <h1>Admin Dashboard</h1>
+      <div style="display:flex; gap:8px;">
+        <a href="elections.html" class="btn sm ok">+ New Election</a>
+        <a href="voters.html" class="btn sm ghost">Manage Voters</a>
+      </div>
+    </div>
     
     <div class="grid">
-      <div class="card stat">
+      <div class="card stat clickable" onclick="window.location.href='voters.html?filter=verified'" title="Click to view verified voters">
         <b id="stat-verified">0</b>
-        <span>Verified voters</span>
+        <span>Verified voters ↗</span>
       </div>
-      <div class="card stat">
-        <b id="stat-pending">0</b>
-        <span>Pending verification</span>
+      <div class="card stat clickable" onclick="window.location.href='voters.html?filter=pending'" title="Click to review pending voters">
+        <b id="stat-pending" style="color:var(--warn)">0</b>
+        <span>Pending verification ↗</span>
       </div>
-      <div class="card stat">
+      <div class="card stat clickable" onclick="window.location.href='elections.html'" title="Click to manage elections">
         <b id="stat-elections">0</b>
-        <span>Elections</span>
+        <span>Elections ↗</span>
       </div>
-      <div class="card stat">
+      <div class="card stat clickable" onclick="window.location.href='results.html'" title="Click to view all voting results">
         <b id="stat-votes">0</b>
-        <span>Total votes cast</span>
+        <span>Total votes cast ↗</span>
       </div>
     </div>
 
     <div class="card">
-      <h3>Recent elections</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0;">Recent Elections</h3>
+        <a href="elections.html" class="btn sm ghost">View All Elections &rarr;</a>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Title</th>
-              <th>Start</th>
-              <th>End</th>
+              <th>Schedule</th>
               <th>Status</th>
               <th>Turnout</th>
+              <th>Quick Actions</th>
             </tr>
           </thead>
           <tbody id="elections-table-body">
@@ -54,7 +63,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (!OVS.requireRole('admin', '../')) return;
-      OVS.renderLayout({ title: 'Admin Dashboard', relativePath: '../' });
+      OVS.renderLayout({ title: 'Admin Dashboard', active: 'dashboard', relativePath: '../' });
 
       const voters = OVS.get(OVS.KEYS.VOTERS);
       const elections = OVS.get(OVS.KEYS.ELECTIONS);
@@ -74,18 +83,25 @@
       const tbody = document.getElementById('elections-table-body');
 
       if (sortedElections.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No elections yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5">No elections yet. <a href="elections.html">Create one now</a>.</td></tr>';
       } else {
         tbody.innerHTML = sortedElections.map(el => {
           const t = OVS.tally(el.election_id);
           const state = OVS.electionState(el);
           return `
             <tr>
-              <td>${OVS.e(el.title)}</td>
-              <td>${OVS.e(el.start_date)}</td>
-              <td>${OVS.e(el.end_date)}</td>
+              <td>
+                <b>${OVS.e(el.title)}</b>
+              </td>
+              <td>
+                <small>${OVS.e(el.start_date)}<br>to ${OVS.e(el.end_date)}</small>
+              </td>
               <td>${OVS.badge(state)}</td>
               <td>${t.votedCount} voted (${t.turnout}%)</td>
+              <td>
+                <a class="btn sm ghost" href="candidates.html?election=${el.election_id}" title="Manage candidates for this election">Candidates</a>
+                <a class="btn sm ghost" href="results.html?election=${el.election_id}" title="View live vote analytics">Results</a>
+              </td>
             </tr>
           `;
         }).join('');

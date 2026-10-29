@@ -8,13 +8,19 @@
 </head>
 <body>
   <main class="container">
-    <h1 id="electionResultsTitle">Results</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <h1 id="electionResultsTitle" style="margin:0;">Results</h1>
+      <a class="btn sm ghost" href="dashboard.html">&larr; Back to My Elections</a>
+    </div>
 
     <div class="card">
-      <p>
-        Total votes: <b id="stat-total-votes">0</b> &middot; 
-        Turnout: <b id="stat-turnout-pct">0%</b>
-      </p>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <p style="margin:0; font-size:1.05rem;">
+          Total Votes Cast: <b id="stat-total-votes" style="color:var(--brand)">0</b> &middot; 
+          Voter Turnout: <b id="stat-turnout-pct" style="color:var(--ok)">0%</b>
+        </p>
+        <span class="badge b-closed">FINAL RESULTS</span>
+      </div>
 
       <div id="candidates-results-list">
         <!-- Dynamically populated candidate results -->
@@ -22,7 +28,7 @@
     </div>
 
     <p>
-      <a class="btn ghost" href="dashboard.html">Back to Dashboard</a>
+      <a class="btn ghost" href="dashboard.html">&larr; Return to Dashboard</a>
     </p>
   </main>
 
@@ -44,7 +50,7 @@
         return;
       }
 
-      document.getElementById('electionResultsTitle').textContent = `${el.title} — Results`;
+      document.getElementById('electionResultsTitle').textContent = `${el.title} — Official Results`;
 
       const t = OVS.tally(eid);
       document.getElementById('stat-total-votes').textContent = t.total;
@@ -61,9 +67,18 @@
         const isWinner = t.maxVotes > 0 && c.votes === t.maxVotes;
 
         return `
-          <div class="${isWinner ? 'winner' : ''}" style="padding-left: 8px; margin-bottom: 12px;">
-            <b>${OVS.e(c.symbol || '🗳️')} ${OVS.e(c.name)}</b> 
-            <small>(${OVS.e(c.party)})</small> &mdash; ${c.votes} votes (${pct}%)
+          <div class="${isWinner ? 'winner' : ''}" style="padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--line);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <span style="font-size:1.6rem; vertical-align:middle; margin-right:6px;">${OVS.e(c.symbol || '🗳️')}</span>
+                <b style="font-size:1.05rem;">${OVS.e(c.name)}</b> 
+                <small style="color:var(--muted); margin-left:6px;">(${OVS.e(c.party)})</small>
+                ${isWinner ? '<span class="badge b-live" style="margin-left:8px;">🏆 WINNER</span>' : ''}
+              </div>
+              <div>
+                <b>${c.votes} votes</b> <span style="color:var(--muted)">(${pct}%)</span>
+              </div>
+            </div>
             <div class="bar"><i style="width: ${pct}%"></i></div>
           </div>
         `;
