@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voter Registration - Online Voting System</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="card form-narrow">
+      <h2>Voter Registration</h2>
+      <form id="registerForm">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" required autocomplete="name">
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+
+        <label for="password">Password (min 8 chars)</label>
+        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" required minlength="8" autocomplete="new-password">
+
+        <p>
+          <button type="submit" class="btn">Register</button>
+          <a href="login.html" style="margin-left: 10px;">Already registered? Login</a>
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script src="assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      OVS.renderLayout({ title: 'Voter Registration', relativePath: '' });
+
+      const form = document.getElementById('registerForm');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const pw = document.getElementById('password').value;
+        const pw2 = document.getElementById('confirm').value;
+
+        const oldAlert = document.querySelector('.alert');
+        if (oldAlert) oldAlert.remove();
+
+        if (pw !== pw2) {
+          showAlert('Passwords do not match.', 'error');
+          return;
+        }
+
+        const res = OVS.register(name, email, pw);
+        if (res.success) {
+          OVS.flash(res.message, 'success');
+          window.location.href = 'login.html';
+        } else {
+          showAlert(res.message, 'error');
+        }
+      });
+
+      function showAlert(msg, type) {
+        const oldAlert = document.querySelector('.alert');
+        if (oldAlert) oldAlert.remove();
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert a-${type}`;
+        alertDiv.textContent = msg;
+        const container = document.querySelector('main.container');
+        container.insertBefore(alertDiv, container.firstChild);
+      }
+    });
+  </script>
+</body>
+</html>

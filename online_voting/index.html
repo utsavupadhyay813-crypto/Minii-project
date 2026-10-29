@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online Voting System</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="card hero">
+      <h1>🗳️ Online Voting System</h1>
+      <p>Secure, transparent and anonymous digital elections.</p>
+      <p id="action-buttons">
+        <a class="btn" href="login.html">Login</a> 
+        <a class="btn ghost" href="register.html">Register as Voter</a>
+      </p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>🔐 Secure</h3>
+        Protected voter authentication, client-side session validation, and tamper-resistant state.
+      </div>
+      <div class="card">
+        <h3>🕵️ Anonymous</h3>
+        Ballots are stored separately from voter identity to preserve complete secrecy.
+      </div>
+      <div class="card">
+        <h3>☝️ One Person, One Vote</h3>
+        Enforced by programmatic constraints preventing duplicate votes per election.
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      OVS.renderLayout({ title: 'Online Voting System', relativePath: '' });
+      const session = OVS.getSession();
+      if (session) {
+        if (session.role === 'admin') {
+          window.location.href = 'admin/dashboard.html';
+        } else if (session.role === 'voter') {
+          window.location.href = 'voter/dashboard.html';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

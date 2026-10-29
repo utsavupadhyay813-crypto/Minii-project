@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Admin Dashboard</h1>
+    
+    <div class="grid">
+      <div class="card stat">
+        <b id="stat-verified">0</b>
+        <span>Verified voters</span>
+      </div>
+      <div class="card stat">
+        <b id="stat-pending">0</b>
+        <span>Pending verification</span>
+      </div>
+      <div class="card stat">
+        <b id="stat-elections">0</b>
+        <span>Elections</span>
+      </div>
+      <div class="card stat">
+        <b id="stat-votes">0</b>
+        <span>Total votes cast</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recent elections</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th>Turnout</th>
+            </tr>
+          </thead>
+          <tbody id="elections-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('admin', '../')) return;
+      OVS.renderLayout({ title: 'Admin Dashboard', relativePath: '../' });
+
+      const voters = OVS.get(OVS.KEYS.VOTERS);
+      const elections = OVS.get(OVS.KEYS.ELECTIONS);
+      const votes = OVS.get(OVS.KEYS.VOTES);
+
+      // Populate statistics
+      const verifiedCount = voters.filter(v => v.status === 'verified').length;
+      const pendingCount = voters.filter(v => v.status === 'pending').length;
+
+      document.getElementById('stat-verified').textContent = verifiedCount;
+      document.getElementById('stat-pending').textContent = pendingCount;
+      document.getElementById('stat-elections').textContent = elections.length;
+      document.getElementById('stat-votes').textContent = votes.length;
+
+      // Populate recent elections
+      const sortedElections = [...elections].sort((a, b) => new Date(b.start_date) - new Date(a.start_date)).slice(0, 5);
+      const tbody = document.getElementById('elections-table-body');
+
+      if (sortedElections.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No elections yet.</td></tr>';
+      } else {
+        tbody.innerHTML = sortedElections.map(el => {
+          const t = OVS.tally(el.election_id);
+          const state = OVS.electionState(el);
+          return `
+            <tr>
+              <td>${OVS.e(el.title)}</td>
+              <td>${OVS.e(el.start_date)}</td>
+              <td>${OVS.e(el.end_date)}</td>
+              <td>${OVS.badge(state)}</td>
+              <td>${t.votedCount} voted (${t.turnout}%)</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Elections - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1 id="welcomeHeader">Welcome, Voter</h1>
+
+    <div class="card" id="voterInfoCard">
+      Voter No: <b id="voterNumberDisplay">-</b> &nbsp; Status: <span id="voterStatusBadge"></span>
+      <div id="unverifiedNotice" style="display: none; margin-top: 10px; color: var(--warn);">
+        Your account must be verified by the admin before you can vote.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Elections</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Schedule</th>
+              <th>State</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="voter-elections-tbody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('voter', '../')) return;
+      OVS.renderLayout({ title: 'My Elections', relativePath: '../' });
+
+      const session = OVS.getSession();
+      document.getElementById('welcomeHeader').textContent = `Welcome, ${session.name}`;
+
+      const voter = OVS.getVoterByUserId(session.uid);
+      if (voter) {
+        document.getElementById('voterNumberDisplay').textContent = voter.voter_number;
+        document.getElementById('voterStatusBadge').innerHTML = OVS.badge(voter.status);
+        if (voter.status !== 'verified') {
+          document.getElementById('unverifiedNotice').style.display = 'block';
+        }
+      }
+
+      const elections = OVS.get(OVS.KEYS.ELECTIONS).filter(e => e.status !== 'draft');
+      const participation = OVS.get(OVS.KEYS.PARTICIPATION);
+      const votedElections = voter 
+        ? participation.filter(p => Number(p.voter_id) === Number(voter.voter_id)).map(p => Number(p.election_id)) 
+        : [];
+
+      const tbody = document.getElementById('voter-elections-tbody');
+      if (elections.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">No elections available.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = elections.map(el => {
+        const state = OVS.electionState(el);
+        const hasVoted = votedElections.includes(Number(el.election_id));
+        const canVote = state === 'live' && voter && voter.status === 'verified' && !hasVoted;
+        const canSeeResults = OVS.resultsVisible(el);
+
+        let actionHtml = '';
+        if (hasVoted) {
+          actionHtml += '<span style="color: var(--ok); font-weight: 600;">✅ Voted</span> ';
+        }
+        if (canVote) {
+          actionHtml += `<a class="btn sm ok" href="vote.html?id=${el.election_id}">Vote now</a> `;
+        }
+        if (canSeeResults) {
+          actionHtml += `<a class="btn sm ghost" href="results.html?id=${el.election_id}">Results</a>`;
+        }
+
+        return `
+          <tr>
+            <td>
+              <b>${OVS.e(el.title)}</b><br>
+              <small>${OVS.e(el.description || '')}</small>
+            </td>
+            <td>
+              ${OVS.e(el.start_date)}<br>
+              <small>to ${OVS.e(el.end_date)}</small>
+            </td>
+            <td>${OVS.badge(state)}</td>
+            <td>${actionHtml || '<span style="color: var(--muted);">&mdash;</span>'}</td>
+          </tr>
+        `;
+      }).join('');
+    });
+  </script>
+</body>
+</html>

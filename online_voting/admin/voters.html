@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage Voters - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Voters</h1>
+
+    <div class="card">
+      <h3>Add voter</h3>
+      <form id="addVoterForm">
+        <div class="grid">
+          <div>
+            <label for="name">Name</label>
+            <input type="text" id="name" required>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
+          </div>
+          <div>
+            <label for="password">Password</label>
+            <input type="password" id="password" minlength="8" required>
+          </div>
+        </div>
+        <p><button type="submit" class="btn">Add &amp; verify</button></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="noprint">
+        <input type="text" id="searchInput" placeholder="🔎 Search name, email or voter number">
+      </div>
+      <br>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Voter No.</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="voters-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('admin', '../')) return;
+      OVS.renderLayout({ title: 'Manage Voters', relativePath: '../' });
+
+      function renderVoters(filter = '') {
+        const voters = OVS.get(OVS.KEYS.VOTERS);
+        const users = OVS.get(OVS.KEYS.USERS);
+        const q = filter.trim().toLowerCase();
+
+        const combined = voters.map(v => {
+          const user = users.find(u => Number(u.user_id) === Number(v.user_id)) || {};
+          return {
+            ...v,
+            name: user.name || 'Unknown',
+            email: user.email || 'Unknown'
+          };
+        }).filter(item => {
+          if (!q) return true;
+          return item.name.toLowerCase().includes(q) ||
+                 item.email.toLowerCase().includes(q) ||
+                 item.voter_number.toLowerCase().includes(q);
+        }).sort((a, b) => {
+          if (a.status !== b.status) return a.status.localeCompare(b.status);
+          return a.name.localeCompare(b.name);
+        });
+
+        const tbody = document.getElementById('voters-table-body');
+        if (combined.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5">No voters found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = combined.map(v => {
+          let buttons = '';
+          if (v.status !== 'verified') {
+            buttons += `<button class="btn sm ok" onclick="updateStatus(${v.voter_id}, 'verified')">Verify</button> `;
+          }
+          if (v.status !== 'rejected') {
+            buttons += `<button class="btn sm warn" onclick="updateStatus(${v.voter_id}, 'rejected')">Reject</button> `;
+          }
+          buttons += `<button class="btn sm bad" onclick="deleteVoter(${v.voter_id}, ${v.user_id})">Delete</button>`;
+
+          return `
+            <tr>
+              <td><b>${OVS.e(v.voter_number)}</b></td>
+              <td>${OVS.e(v.name)}</td>
+              <td>${OVS.e(v.email)}</td>
+              <td>${OVS.badge(v.status)}</td>
+              <td>${buttons}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      window.updateStatus = function(voterId, newStatus) {
+        let voters = OVS.get(OVS.KEYS.VOTERS);
+        const v = voters.find(x => Number(x.voter_id) === Number(voterId));
+        if (v) {
+          v.status = newStatus;
+          OVS.set(OVS.KEYS.VOTERS, voters);
+          OVS.flash(`Voter ${newStatus}.`);
+          renderVoters(document.getElementById('searchInput').value);
+        }
+      };
+
+      window.deleteVoter = function(voterId, userId) {
+        if (!confirm('Delete voter?')) return;
+        let voters = OVS.get(OVS.KEYS.VOTERS).filter(v => Number(v.voter_id) !== Number(voterId));
+        let users = OVS.get(OVS.KEYS.USERS).filter(u => Number(u.user_id) !== Number(userId));
+        let participation = OVS.get(OVS.KEYS.PARTICIPATION).filter(p => Number(p.voter_id) !== Number(voterId));
+
+        OVS.set(OVS.KEYS.VOTERS, voters);
+        OVS.set(OVS.KEYS.USERS, users);
+        OVS.set(OVS.KEYS.PARTICIPATION, participation);
+
+        OVS.flash('Voter deleted.');
+        renderVoters(document.getElementById('searchInput').value);
+      };
+
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        renderVoters(e.target.value);
+      });
+
+      document.getElementById('addVoterForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        const res = OVS.register(name, email, password);
+        if (res.success) {
+          // Immediately set status to verified for admin-added voters
+          let voters = OVS.get(OVS.KEYS.VOTERS);
+          const lastVoter = voters[voters.length - 1];
+          if (lastVoter) lastVoter.status = 'verified';
+          OVS.set(OVS.KEYS.VOTERS, voters);
+
+          OVS.flash('Voter added and verified.');
+          document.getElementById('addVoterForm').reset();
+          renderVoters();
+        } else {
+          alert(res.message);
+        }
+      });
+
+      renderVoters();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cast Your Vote - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <div id="voteRecordedCard" class="card hero" style="display: none;">
+      <h1>✅ Vote recorded</h1>
+      <p>Thank you for voting in <b id="recordedElectionTitle"></b>. Your ballot is anonymous.</p>
+      <a class="btn" href="dashboard.html">Back to elections</a>
+    </div>
+
+    <div id="votingBooth">
+      <h1 id="electionTitleHeading">Cast Your Vote</h1>
+      <input id="search" placeholder="🔎 Search candidate or party" style="margin-bottom: 14px;">
+      
+      <form id="voteForm">
+        <div id="candidateList">
+          <!-- Dynamically populated candidate choices -->
+        </div>
+        <p style="margin-top: 18px;">
+          <button type="submit" class="btn ok">Submit Vote</button> 
+          <a class="btn ghost" href="dashboard.html">Cancel</a>
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('voter', '../')) return;
+      OVS.renderLayout({ title: 'Cast Your Vote', relativePath: '../' });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const eid = Number(urlParams.get('id'));
+
+      const session = OVS.getSession();
+      const voter = OVS.getVoterByUserId(session.uid);
+
+      if (!voter || voter.status !== 'verified') {
+        OVS.flash('Your account must be verified by admin before voting.', 'error');
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      const elections = OVS.get(OVS.KEYS.ELECTIONS);
+      const el = elections.find(e => Number(e.election_id) === eid);
+
+      if (!el || OVS.electionState(el) !== 'live') {
+        OVS.flash('Voting is not currently active for this election.', 'error');
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      // Check duplicate vote protection
+      const participation = OVS.get(OVS.KEYS.PARTICIPATION);
+      const alreadyVoted = participation.some(p => Number(p.election_id) === eid && Number(p.voter_id) === Number(voter.voter_id));
+      if (alreadyVoted) {
+        OVS.flash('You have already voted in this election.', 'error');
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      document.getElementById('electionTitleHeading').textContent = el.title;
+
+      const candidates = OVS.get(OVS.KEYS.CANDIDATES).filter(c => Number(c.election_id) === eid);
+      const candidateList = document.getElementById('candidateList');
+
+      if (candidates.length === 0) {
+        candidateList.innerHTML = '<div class="alert a-error">No candidates configured for this election.</div>';
+        return;
+      }
+
+      candidateList.innerHTML = candidates.map(c => `
+        <label class="cand" data-text="${OVS.e((c.name + ' ' + c.party).toLowerCase())}">
+          <input type="radio" name="candidate_id" value="${c.candidate_id}" required>
+          <span class="sym">${OVS.e(c.symbol || '🗳️')}</span>
+          <span>
+            <b>${OVS.e(c.name)}</b> <small>&middot; ${OVS.e(c.party)}</small><br>
+            <small>${OVS.e(c.manifesto || '')}</small>
+          </span>
+        </label>
+      `).join('');
+
+      // Search filter handler
+      document.getElementById('search').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.cand').forEach(card => {
+          card.style.display = card.dataset.text.includes(query) ? 'flex' : 'none';
+        });
+      });
+
+      // Submit vote handler
+      document.getElementById('voteForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const selected = document.querySelector('input[name="candidate_id"]:checked');
+        if (!selected) {
+          alert('Please select a candidate.');
+          return;
+        }
+
+        if (!confirm('Submit your vote? This cannot be changed.')) return;
+
+        const candidateId = Number(selected.value);
+        const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+        // 1) Record voter participation (One person, one vote - anonymous separation)
+        let partList = OVS.get(OVS.KEYS.PARTICIPATION);
+        partList.push({
+          election_id: eid,
+          voter_id: voter.voter_id,
+          voted_at: now
+        });
+        OVS.set(OVS.KEYS.PARTICIPATION, partList);
+
+        // 2) Record anonymous vote (Ballot secrecy: candidate choice has NO voter ID)
+        let votesList = OVS.get(OVS.KEYS.VOTES);
+        const newVoteId = votesList.length ? Math.max(...votesList.map(v => v.vote_id)) + 1 : 1;
+        votesList.push({
+          vote_id: newVoteId,
+          election_id: eid,
+          candidate_id: candidateId,
+          cast_at: now
+        });
+        OVS.set(OVS.KEYS.VOTES, votesList);
+
+        // Display confirmation view
+        document.getElementById('votingBooth').style.display = 'none';
+        document.getElementById('recordedElectionTitle').textContent = el.title;
+        document.getElementById('voteRecordedCard').style.display = 'block';
+      });
+    });
+  </script>
+</body>
+</html>

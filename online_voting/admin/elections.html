@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage Elections - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Elections</h1>
+
+    <div class="card">
+      <h3>Create / schedule election</h3>
+      <form id="createElectionForm">
+        <label for="title">Title</label>
+        <input type="text" id="title" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" rows="2"></textarea>
+
+        <div class="grid">
+          <div>
+            <label for="start_date">Start</label>
+            <input type="datetime-local" id="start_date" required>
+          </div>
+          <div>
+            <label for="end_date">End</label>
+            <input type="datetime-local" id="end_date" required>
+          </div>
+        </div>
+
+        <p><button type="submit" class="btn">Create</button></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>All elections</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Schedule</th>
+              <th>State</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="elections-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+      <p><small>An election accepts votes only when status is <b>open</b> AND the current time is between start and end.</small></p>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('admin', '../')) return;
+      OVS.renderLayout({ title: 'Manage Elections', relativePath: '../' });
+
+      function renderElections() {
+        const elections = OVS.get(OVS.KEYS.ELECTIONS);
+        const candidates = OVS.get(OVS.KEYS.CANDIDATES);
+        const sorted = [...elections].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+        const tbody = document.getElementById('elections-table-body');
+
+        if (sorted.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">No elections yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = sorted.map(el => {
+          const state = OVS.electionState(el);
+          const cCount = candidates.filter(c => Number(c.election_id) === Number(el.election_id)).length;
+
+          let actionButtons = '';
+
+          if (el.status !== 'open') {
+            actionButtons += `<button class="btn sm ok" onclick="changeStatus(${el.election_id}, 'open')">Start</button> `;
+          }
+          if (el.status !== 'closed') {
+            actionButtons += `<button class="btn sm bad" onclick="changeStatus(${el.election_id}, 'closed')">Stop</button> `;
+          }
+          if (el.status === 'open') {
+            actionButtons += `<button class="btn sm ghost" onclick="changeStatus(${el.election_id}, 'draft')">Draft</button> `;
+          }
+          if (el.status === 'draft') {
+            actionButtons += `<button class="btn sm bad" onclick="deleteElection(${el.election_id})">Delete</button>`;
+          }
+
+          return `
+            <tr>
+              <td>
+                <b>${OVS.e(el.title)}</b><br>
+                <small>${OVS.e(el.description || '')}</small>
+              </td>
+              <td>
+                ${OVS.e(el.start_date)}<br>
+                <small>to ${OVS.e(el.end_date)}</small>
+              </td>
+              <td>${OVS.badge(state)}</td>
+              <td>${actionButtons}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      window.changeStatus = function(id, newStatus) {
+        const elections = OVS.get(OVS.KEYS.ELECTIONS);
+        const candidates = OVS.get(OVS.KEYS.CANDIDATES);
+        const el = elections.find(x => Number(x.election_id) === Number(id));
+        if (!el) return;
+
+        if (newStatus === 'open') {
+          const cCount = candidates.filter(c => Number(c.election_id) === Number(id)).length;
+          if (cCount < 2) {
+            alert('Add at least 2 candidates before opening this election.');
+            return;
+          }
+        }
+
+        el.status = newStatus;
+        OVS.set(OVS.KEYS.ELECTIONS, elections);
+        OVS.flash(`Election status updated to ${newStatus}.`);
+        window.location.reload();
+      };
+
+      window.deleteElection = function(id) {
+        if (!confirm('Delete this election?')) return;
+        let elections = OVS.get(OVS.KEYS.ELECTIONS);
+        elections = elections.filter(x => Number(x.election_id) !== Number(id));
+        OVS.set(OVS.KEYS.ELECTIONS, elections);
+
+        // Also clean up candidates
+        let candidates = OVS.get(OVS.KEYS.CANDIDATES);
+        candidates = candidates.filter(c => Number(c.election_id) !== Number(id));
+        OVS.set(OVS.KEYS.CANDIDATES, candidates);
+
+        OVS.flash('Draft election deleted.');
+        window.location.reload();
+      };
+
+      document.getElementById('createElectionForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('title').value.trim();
+        const desc = document.getElementById('description').value.trim();
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+
+        if (!title || !start || !end) {
+          alert('Enter a title and valid start/end time.');
+          return;
+        }
+
+        if (new Date(end) <= new Date(start)) {
+          alert('End date must be after start date.');
+          return;
+        }
+
+        const elections = OVS.get(OVS.KEYS.ELECTIONS);
+        const newId = elections.length ? Math.max(...elections.map(x => x.election_id)) + 1 : 1;
+        const startFormatted = start.replace('T', ' ') + ':00';
+        const endFormatted = end.replace('T', ' ') + ':00';
+
+        elections.push({
+          election_id: newId,
+          title: title,
+          description: desc,
+          start_date: startFormatted,
+          end_date: endFormatted,
+          status: 'draft',
+          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+        });
+
+        OVS.set(OVS.KEYS.ELECTIONS, elections);
+        OVS.flash('Election created as draft.');
+        window.location.reload();
+      });
+
+      renderElections();
+    });
+  </script>
+</body>
+</html>

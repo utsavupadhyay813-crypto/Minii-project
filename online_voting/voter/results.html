@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Election Results - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1 id="electionResultsTitle">Results</h1>
+
+    <div class="card">
+      <p>
+        Total votes: <b id="stat-total-votes">0</b> &middot; 
+        Turnout: <b id="stat-turnout-pct">0%</b>
+      </p>
+
+      <div id="candidates-results-list">
+        <!-- Dynamically populated candidate results -->
+      </div>
+    </div>
+
+    <p>
+      <a class="btn ghost" href="dashboard.html">Back to Dashboard</a>
+    </p>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('voter', '../')) return;
+      OVS.renderLayout({ title: 'Election Results', relativePath: '../' });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const eid = Number(urlParams.get('id'));
+
+      const elections = OVS.get(OVS.KEYS.ELECTIONS);
+      const el = elections.find(e => Number(e.election_id) === eid);
+
+      if (!el || !OVS.resultsVisible(el)) {
+        OVS.flash('Results are not available for this election yet.', 'error');
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      document.getElementById('electionResultsTitle').textContent = `${el.title} — Results`;
+
+      const t = OVS.tally(eid);
+      document.getElementById('stat-total-votes').textContent = t.total;
+      document.getElementById('stat-turnout-pct').textContent = `${t.turnout}%`;
+
+      const listContainer = document.getElementById('candidates-results-list');
+      if (t.candidates.length === 0) {
+        listContainer.innerHTML = '<p>No candidates were found for this election.</p>';
+        return;
+      }
+
+      listContainer.innerHTML = t.candidates.map(c => {
+        const pct = t.total > 0 ? Number(((c.votes * 100) / t.total).toFixed(1)) : 0;
+        const isWinner = t.maxVotes > 0 && c.votes === t.maxVotes;
+
+        return `
+          <div class="${isWinner ? 'winner' : ''}" style="padding-left: 8px; margin-bottom: 12px;">
+            <b>${OVS.e(c.symbol || '🗳️')} ${OVS.e(c.name)}</b> 
+            <small>(${OVS.e(c.party)})</small> &mdash; ${c.votes} votes (${pct}%)
+            <div class="bar"><i style="width: ${pct}%"></i></div>
+          </div>
+        `;
+      }).join('');
+    });
+  </script>
+</body>
+</html>

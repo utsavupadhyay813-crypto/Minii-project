@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Election Results - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Results &amp; Analytics</h1>
+
+    <div id="no-elections-alert" class="card" style="display: none;">
+      No elections yet.
+    </div>
+
+    <div id="results-content">
+      <div class="card noprint">
+        <label for="electionSelect">Election</label>
+        <select id="electionSelect"></select>
+      </div>
+
+      <div class="card" id="electionCard">
+        <h2>
+          <span id="electionTitle"></span> 
+          <span id="electionBadge"></span>
+        </h2>
+        <p id="electionSchedule" style="color: var(--muted);"></p>
+
+        <div class="grid">
+          <div class="card stat">
+            <b id="stat-votes">0</b>
+            <span>Votes cast</span>
+          </div>
+          <div class="card stat">
+            <b id="stat-eligible">0</b>
+            <span>Eligible voters</span>
+          </div>
+          <div class="card stat">
+            <b id="stat-turnout">0%</b>
+            <span>Turnout</span>
+          </div>
+        </div>
+        <br>
+
+        <div id="candidates-results">
+          <!-- Dynamically populated candidate results -->
+        </div>
+
+        <p class="noprint" style="margin-top: 20px;">
+          <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </p>
+        <p><small id="generationTimestamp"></small></p>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('admin', '../')) return;
+      OVS.renderLayout({ title: 'Election Results', relativePath: '../' });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let selectedEid = Number(urlParams.get('election')) || 0;
+
+      const elections = OVS.get(OVS.KEYS.ELECTIONS);
+      if (elections.length === 0) {
+        document.getElementById('no-elections-alert').style.display = 'block';
+        document.getElementById('results-content').style.display = 'none';
+        return;
+      }
+
+      if (!selectedEid || !elections.some(e => Number(e.election_id) === selectedEid)) {
+        selectedEid = Number(elections[0].election_id);
+      }
+
+      const select = document.getElementById('electionSelect');
+      select.innerHTML = elections.map(x => `
+        <option value="${x.election_id}" ${Number(x.election_id) === selectedEid ? 'selected' : ''}>
+          ${OVS.e(x.title)}
+        </option>
+      `).join('');
+
+      select.addEventListener('change', (e) => {
+        window.location.href = `results.html?election=${e.target.value}`;
+      });
+
+      const currentElection = elections.find(x => Number(x.election_id) === selectedEid);
+      const state = OVS.electionState(currentElection);
+      const t = OVS.tally(selectedEid);
+
+      document.getElementById('electionTitle').textContent = currentElection.title;
+      document.getElementById('electionBadge').innerHTML = OVS.badge(state);
+      document.getElementById('electionSchedule').textContent = `${currentElection.start_date} → ${currentElection.end_date}`;
+
+      document.getElementById('stat-votes').textContent = t.total;
+      document.getElementById('stat-eligible').textContent = t.eligible;
+      document.getElementById('stat-turnout').textContent = `${t.turnout}%`;
+
+      const resultsContainer = document.getElementById('candidates-results');
+      if (t.candidates.length === 0) {
+        resultsContainer.innerHTML = '<p>No candidates registered for this election.</p>';
+      } else {
+        resultsContainer.innerHTML = t.candidates.map(c => {
+          const pct = t.total > 0 ? Number(((c.votes * 100) / t.total).toFixed(1)) : 0;
+          const isWinner = t.maxVotes > 0 && c.votes === t.maxVotes && state !== 'live';
+
+          return `
+            <div class="${isWinner ? 'winner' : ''}" style="padding-left: 8px; margin-bottom: 12px;">
+              <b>${OVS.e(c.symbol || '🗳️')} ${OVS.e(c.name)}</b> 
+              <small>(${OVS.e(c.party)})</small> &mdash; ${c.votes} votes (${pct}%)
+              <div class="bar"><i style="width: ${pct}%"></i></div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const now = new Date();
+      document.getElementById('generationTimestamp').textContent = `Generated on ${now.toLocaleString()}`;
+    });
+  </script>
+</body>
+</html>

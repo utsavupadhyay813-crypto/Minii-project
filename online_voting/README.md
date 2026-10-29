@@ -1,36 +1,59 @@
 # Online Voting System (TYCS Mini Project)
 
-**Stack:** HTML + CSS + JavaScript | PHP 8 (PDO) | MySQL/MariaDB | XAMPP
+**Stack:** HTML5 | CSS3 | Modern JavaScript (ES6+ Engine & LocalStorage Datastore) | Apache / XAMPP
 
-## Setup (XAMPP)
-1. Copy the `online_voting` folder to `C:\xampp\htdocs\`.
-2. Start **Apache** and **MySQL** in the XAMPP control panel.
-3. Open `http://localhost/phpmyadmin` -> Import -> choose `sql/database.sql`.
-4. Open `http://localhost/online_voting/setup.php` once (creates the admin), then **delete `setup.php`**.
-5. Open `http://localhost/online_voting/`.
+---
 
-Default admin: `admin@vote.com` / `Admin@123` (change it!)
+## 🌐 How to Run & Access
 
-## Typical demo flow
-1. Admin: create election -> add 2+ candidates -> Start (open) the election.
-2. Voter: register -> Admin verifies -> voter logs in and votes once.
-3. Admin: Results page -> Print / Save as PDF.
+1. Ensure **Apache** is running in the XAMPP Control Panel.
+2. Open your browser and navigate to:
+   - **Home / Landing:** `http://localhost/online_voting/` (or `http://localhost/online_voting/index.html`)
+   - **Login:** `http://localhost/online_voting/login.html`
+   - **Register:** `http://localhost/online_voting/register.html`
 
-## Security features
-- `password_hash()` / `password_verify()` (bcrypt)
-- PDO prepared statements (SQL-injection safe), output escaping with `htmlspecialchars` (XSS safe)
-- CSRF tokens on every POST form, `session_regenerate_id()` on login, login attempt throttling
-- **Ballot secrecy:** `voter_participation` (who voted) is separate from `votes` (what was chosen)
-- **One person, one vote:** composite PRIMARY KEY (election_id, voter_id) + DB transaction
-- Candidates locked once an election leaves draft; votes accepted only while open AND inside start/end time
+### Default Login Accounts:
+- **Admin:** `admin@vote.com` / `Admin@123`
+- **Voter:** `utsavupadhyay813@gmail.com` / `Password@123` (or register a new voter)
 
-## Folder structure
+---
+
+## 🚀 Typical Demo Flow
+1. **Admin:** Log in &rarr; Manage Elections &rarr; Add 2+ Candidates &rarr; Start (open) the election.
+2. **Voter:** Register at `/register.html` &rarr; Admin verifies in `/admin/voters.html` &rarr; Voter logs in and votes once in `/voter/vote.html`.
+3. **Results:** View live tally, percentage turnouts, and click **Print / Save as PDF** in `/admin/results.html`.
+
+---
+
+## 🛡️ Security & Integrity Features
+- **Strict Ballot Secrecy:** Participation records (`who voted`) are stored completely separate from ballots (`what candidate was chosen`).
+- **One Person, One Vote:** Programmatic constraint prevents multiple submissions per voter.
+- **Voter Verification Gate:** Only verified voter accounts can access voting booths.
+- **Candidate Lock:** Candidates cannot be modified once an election leaves draft state.
+- **Complete Legacy PHP Backup:** Original PHP scripts are preserved in `php_legacy_backup/`.
+
+---
+
+## 📁 Folder Structure
 ```
 online_voting/
- index.php  login.php  register.php  logout.php  setup.php
- includes/  init.php header.php footer.php
- admin/     dashboard.php elections.php candidates.php voters.php results.php
- voter/     dashboard.php vote.php results.php
- assets/    style.css
- sql/       database.sql
+├── index.html            # Main landing page
+├── login.html            # Unified login portal (Admin & Voter)
+├── register.html         # Voter registration portal
+├── admin/
+│   ├── dashboard.html    # Statistics & overview
+│   ├── elections.html    # Manage & schedule elections
+│   ├── candidates.html   # Manage candidate nominations
+│   ├── voters.html       # Voter verification & management
+│   └── results.html      # Live results & printable audit report
+├── voter/
+│   ├── dashboard.html    # Voter portal & active election list
+│   ├── vote.html         # Secure voting booth
+│   └── results.html      # Public outcome & winner display
+├── assets/
+│   ├── style.css         # UI stylesheet (identical theme & layout)
+│   └── app.js            # Modern ES6+ business logic & storage engine
+├── php_legacy_backup/    # Safe backup of previous PHP scripts
+└── sql/
+    └── database.sql      # Schema definitions
 ```

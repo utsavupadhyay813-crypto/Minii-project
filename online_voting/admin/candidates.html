@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage Candidates - Online Voting System</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Candidates</h1>
+
+    <div id="no-elections-alert" class="card" style="display: none;">
+      Create an election first.
+    </div>
+
+    <div id="content-area">
+      <div class="card">
+        <label for="electionSelect">Election</label>
+        <select id="electionSelect"></select>
+      </div>
+
+      <div id="candidateFormCard" class="card">
+        <h3 id="formTitle">Add candidate</h3>
+        <form id="candidateForm">
+          <input type="hidden" id="editCandidateId" value="">
+          <div class="grid">
+            <div>
+              <label for="candName">Name</label>
+              <input type="text" id="candName" required>
+            </div>
+            <div>
+              <label for="candParty">Party / group</label>
+              <input type="text" id="candParty" required>
+            </div>
+            <div>
+              <label for="candSymbol">Symbol (emoji)</label>
+              <input type="text" id="candSymbol" maxlength="4" placeholder="🗳️" value="🗳️">
+            </div>
+          </div>
+          <label for="candManifesto">Manifesto</label>
+          <textarea id="candManifesto" rows="3"></textarea>
+          <p>
+            <button type="submit" id="submitBtn" class="btn">Add</button>
+            <button type="button" id="cancelEditBtn" class="btn ghost" style="display: none;">Cancel</button>
+          </p>
+        </form>
+      </div>
+
+      <div id="lockedAlert" class="alert a-error" style="display: none;">
+        This election is no longer a draft, so candidates are locked.
+      </div>
+
+      <div class="card">
+        <h3>Candidate list</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Party</th>
+                <th>Manifesto</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="candidates-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!OVS.requireRole('admin', '../')) return;
+      OVS.renderLayout({ title: 'Manage Candidates', relativePath: '../' });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let selectedEid = Number(urlParams.get('election')) || 0;
+      let editId = Number(urlParams.get('edit')) || 0;
+
+      const elections = OVS.get(OVS.KEYS.ELECTIONS);
+      if (elections.length === 0) {
+        document.getElementById('no-elections-alert').style.display = 'block';
+        document.getElementById('content-area').style.display = 'none';
+        return;
+      }
+
+      if (!selectedEid || !elections.some(e => Number(e.election_id) === selectedEid)) {
+        selectedEid = Number(elections[0].election_id);
+      }
+
+      const select = document.getElementById('electionSelect');
+      select.innerHTML = elections.map(x => `
+        <option value="${x.election_id}" ${Number(x.election_id) === selectedEid ? 'selected' : ''}>
+          ${OVS.e(x.title)} (${OVS.e(OVS.electionState(x))})
+        </option>
+      `).join('');
+
+      select.addEventListener('change', (e) => {
+        window.location.href = `candidates.html?election=${e.target.value}`;
+      });
+
+      const currentElection = elections.find(x => Number(x.election_id) === selectedEid);
+      const isEditable = currentElection && currentElection.status === 'draft';
+
+      const formCard = document.getElementById('candidateFormCard');
+      const lockedAlert = document.getElementById('lockedAlert');
+
+      if (isEditable) {
+        formCard.style.display = 'block';
+        lockedAlert.style.display = 'none';
+      } else {
+        formCard.style.display = 'none';
+        lockedAlert.style.display = 'block';
+      }
+
+      const candidates = OVS.get(OVS.KEYS.CANDIDATES);
+      const electionCandidates = candidates.filter(c => Number(c.election_id) === selectedEid);
+
+      // Handle Edit Mode
+      if (isEditable && editId) {
+        const candidateToEdit = electionCandidates.find(c => Number(c.candidate_id) === editId);
+        if (candidateToEdit) {
+          document.getElementById('formTitle').textContent = 'Edit candidate';
+          document.getElementById('editCandidateId').value = candidateToEdit.candidate_id;
+          document.getElementById('candName').value = candidateToEdit.name;
+          document.getElementById('candParty').value = candidateToEdit.party;
+          document.getElementById('candSymbol').value = candidateToEdit.symbol || '🗳️';
+          document.getElementById('candManifesto').value = candidateToEdit.manifesto || '';
+          document.getElementById('submitBtn').textContent = 'Update';
+          const cancelBtn = document.getElementById('cancelEditBtn');
+          cancelBtn.style.display = 'inline-block';
+          cancelBtn.onclick = () => {
+            window.location.href = `candidates.html?election=${selectedEid}`;
+          };
+        }
+      }
+
+      // Render candidates table
+      const tbody = document.getElementById('candidates-table-body');
+      if (electionCandidates.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No candidates yet.</td></tr>';
+      } else {
+        tbody.innerHTML = electionCandidates.map(c => `
+          <tr>
+            <td style="font-size: 1.6rem;">${OVS.e(c.symbol || '🗳️')}</td>
+            <td><b>${OVS.e(c.name)}</b></td>
+            <td>${OVS.e(c.party)}</td>
+            <td><small>${OVS.e(c.manifesto || '')}</small></td>
+            <td>
+              ${isEditable ? `
+                <a class="btn sm ghost" href="candidates.html?election=${selectedEid}&edit=${c.candidate_id}">Edit</a>
+                <button class="btn sm bad" onclick="deleteCandidate(${c.candidate_id})">Delete</button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      window.deleteCandidate = function(cid) {
+        if (!confirm('Delete candidate?')) return;
+        let allCands = OVS.get(OVS.KEYS.CANDIDATES);
+        allCands = allCands.filter(c => Number(c.candidate_id) !== Number(cid));
+        OVS.set(OVS.KEYS.CANDIDATES, allCands);
+        OVS.flash('Candidate deleted.');
+        window.location.href = `candidates.html?election=${selectedEid}`;
+      };
+
+      document.getElementById('candidateForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const cid = Number(document.getElementById('editCandidateId').value);
+        const name = document.getElementById('candName').value.trim();
+        const party = document.getElementById('candParty').value.trim();
+        const symbol = document.getElementById('candSymbol').value.trim() || '🗳️';
+        const manifesto = document.getElementById('candManifesto').value.trim();
+
+        if (!name || !party) {
+          alert('Name and party are required.');
+          return;
+        }
+
+        let allCands = OVS.get(OVS.KEYS.CANDIDATES);
+
+        if (cid) {
+          const target = allCands.find(c => Number(c.candidate_id) === cid);
+          if (target) {
+            target.name = name;
+            target.party = party;
+            target.symbol = symbol;
+            target.manifesto = manifesto;
+            OVS.flash('Candidate updated.');
+          }
+        } else {
+          const newId = allCands.length ? Math.max(...allCands.map(c => c.candidate_id)) + 1 : 1;
+          allCands.push({
+            candidate_id: newId,
+            election_id: selectedEid,
+            name: name,
+            party: party,
+            symbol: symbol,
+            manifesto: manifesto
+          });
+          OVS.flash('Candidate added.');
+        }
+
+        OVS.set(OVS.KEYS.CANDIDATES, allCands);
+        window.location.href = `candidates.html?election=${selectedEid}`;
+      });
+    });
+  </script>
+</body>
+</html>
