@@ -4,16 +4,24 @@ A secure, transparent, and responsive digital election management and balloting 
 
 ---
 
-## 🚀 Live Demo & Deployment (Vercel)
+## 🚀 Live Deployment Options
 
-This project is fully ready for 1-click deployment on **Vercel** or **GitHub Pages**.
+This project is 100% static, client-side, and ready for 1-click deployment on **Vercel**, **Render**, or **GitHub Pages**.
 
-### Deploy to Vercel:
-1. Push this repository to GitHub.
-2. Go to [vercel.com](https://vercel.com/) and click **"Add New Project"**.
-3. Import your **`Minii-project`** repository.
-4. Keep the default settings and click **"Deploy"**.
-5. Your live URL will be ready immediately (e.g. `https://your-project.vercel.app/`).
+### Option A: Deploy on Vercel
+1. Go to [vercel.com](https://vercel.com/) &rarr; click **"Add New Project"**.
+2. Select your repository: **`utsavupadhyay813-crypto/Minii-project`**.
+3. Keep default settings and click **"Deploy"**.
+
+### Option B: Deploy on Render
+1. Go to [render.com](https://render.com/) &rarr; click **"New +"** &rarr; select **"Static Site"**.
+2. Connect your GitHub repository: **`utsavupadhyay813-crypto/Minii-project`**.
+3. Configure:
+   * **Name:** `online-voting` (or your choice)
+   * **Branch:** `main`
+   * **Build Command:** *(leave empty)*
+   * **Publish Directory:** `online_voting`
+4. Click **"Create Static Site"**. Your live `.onrender.com` link will be active in seconds!
 
 ---
 
@@ -48,13 +56,14 @@ This project is fully ready for 1-click deployment on **Vercel** or **GitHub Pag
    * Candidate lists cannot be altered once an election leaves draft state, ensuring ballot integrity.
 
 5. **Client-Side Datastore & Offline Support:**
-   * Built using a modern ES6+ datastore engine (`localStorage`), enabling it to run entirely in modern web browsers without complex server setups.
+   * Built using a modern ES6+ datastore engine (`localStorage`), enabling it to run entirely in modern web browsers without server configuration.
 
 ---
 
 ## 📁 Repository Structure
 
 ```
+├── render.yaml           # Render deployment configuration
 ├── vercel.json           # Vercel routing configuration
 ├── index.html            # Automatic root entry router
 ├── README.md             # Project documentation

@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: online-voting-system
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: ./online_voting
